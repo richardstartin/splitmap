@@ -1,10 +1,12 @@
 package com.openkappa.splitmap;
 
+import org.roaringbitmap.Container;
+
 public class SplitMap {
 
-  private final PrefixIndex<Region> index;
+  private final PrefixIndex<Container> index;
 
-  public SplitMap(PrefixIndex<Region> index) {
+  public SplitMap(PrefixIndex<Container> index) {
     this.index = index;
   }
 
@@ -12,7 +14,7 @@ public class SplitMap {
     this(new PrefixIndex<>());
   }
 
-  public void insert(short key, Region region) {
+  public void insert(short key, Container region) {
     index.insert(key, region);
   }
 
@@ -20,7 +22,7 @@ public class SplitMap {
     return index.get((short)(value >>> 16)).contains((short)value);
   }
 
-  public PrefixIndex<Region> getIndex() {
+  public PrefixIndex<Container> getIndex() {
     return index;
   }
 }

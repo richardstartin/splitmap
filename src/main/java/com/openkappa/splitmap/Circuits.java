@@ -1,5 +1,7 @@
 package com.openkappa.splitmap;
 
+import org.roaringbitmap.Container;
+
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -13,7 +15,7 @@ import static java.util.stream.Collectors.toList;
 
 public class Circuits {
 
-  public static SplitMap evaluate(Function<List<Region>, Region> circuit,
+  public static SplitMap evaluate(Function<List<Container>, Container> circuit,
                                   SplitMap... splitMaps) {
     return groupByKey(splitMaps)
             .streamUniformPartitions()
@@ -21,21 +23,21 @@ public class Circuits {
             .collect(new IndexAggregator(circuit));
   }
 
-  public static PrefixIndex<List<Region>> groupByKey(SplitMap... splitMaps) {
-    PrefixIndex<List<Region>> grouped = new PrefixIndex<>();
-    List<PrefixIndex<Region>> indices = Arrays.stream(splitMaps)
+  public static PrefixIndex<List<Container>> groupByKey(SplitMap... splitMaps) {
+    PrefixIndex<List<Container>> grouped = new PrefixIndex<>();
+    List<PrefixIndex<Container>> indices = Arrays.stream(splitMaps)
                                               .map(SplitMap::getIndex)
                                               .collect(toList());
-    Region[] column = new Region[Long.SIZE];
+    Container[] column = new Container[Long.SIZE];
     for (int i = 0; i < 1 << 10; ++i) {
       long word = 0L;
-      for (PrefixIndex<Region> index : indices) {
+      for (PrefixIndex<Container> index : indices) {
         word = index.contributeToKey(i, word);
       }
       if (word != 0) {
-        List<Region>[] chunk = new List[Long.SIZE];
+        List<Container>[] chunk = new List[Long.SIZE];
         int limit = Long.bitCount(Long.highestOneBit(word) - 1) + 1;
-        for (PrefixIndex<Region> index : indices) {
+        for (PrefixIndex<Container> index : indices) {
           index.readChunk(i, column);
           for (int j = 0; j < limit; ++j) {
             if (null != column[j]) {
@@ -54,29 +56,29 @@ public class Circuits {
     return grouped;
   }
 
-  private static class IndexAggregator implements Collector<PrefixIndex<List<Region>>, PrefixIndex<Region>, SplitMap> {
+  private static class IndexAggregator implements Collector<PrefixIndex<List<Container>>, PrefixIndex<Container>, SplitMap> {
 
-    private final Function<List<Region>, Region> circuit;
-    private final ThreadLocal<Region[]> accumulatorChunkOut = ThreadLocal.withInitial(() -> new Region[Long.SIZE]);
-    private final ThreadLocal<List<Region>[]> accumulatorChunkIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
+    private final Function<List<Container>, Container> circuit;
+    private final ThreadLocal<Container[]> accumulatorChunkOut = ThreadLocal.withInitial(() -> new Container[Long.SIZE]);
+    private final ThreadLocal<List<Container>[]> accumulatorChunkIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
 
     // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
-    private final PrefixIndex<Region> target = new PrefixIndex<>();
+    private final PrefixIndex<Container> target = new PrefixIndex<>();
 
-    public IndexAggregator(Function<List<Region>, Region> circuit) {
+    public IndexAggregator(Function<List<Container>, Container> circuit) {
       this.circuit = circuit;
     }
 
     @Override
-    public Supplier<PrefixIndex<Region>> supplier() {
+    public Supplier<PrefixIndex<Container>> supplier() {
       return () -> target;
     }
 
     @Override
-    public BiConsumer<PrefixIndex<Region>, PrefixIndex<List<Region>>> accumulator() {
+    public BiConsumer<PrefixIndex<Container>, PrefixIndex<List<Container>>> accumulator() {
       return (l, r) -> {
-        List<Region>[] chunkIn = accumulatorChunkIn.get();
-        Region[] chunkOut = accumulatorChunkOut.get();
+        List<Container>[] chunkIn = accumulatorChunkIn.get();
+        Container[] chunkOut = accumulatorChunkOut.get();
         for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
           final long mask = r.contributeToKey(i, 0L);
           if (mask != 0 && r.readChunk(i, chunkIn)) {
@@ -94,12 +96,12 @@ public class Circuits {
     }
 
     @Override
-    public BinaryOperator<PrefixIndex<Region>> combiner() {
+    public BinaryOperator<PrefixIndex<Container>> combiner() {
       return (l, r) -> l;
     }
 
     @Override
-    public Function<PrefixIndex<Region>, SplitMap> finisher() {
+    public Function<PrefixIndex<Container>, SplitMap> finisher() {
       return SplitMap::new;
     }
 

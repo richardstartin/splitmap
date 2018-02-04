@@ -2,7 +2,6 @@ package com.openkappa.splitmap;
 
 import java.util.Queue;
 import java.util.Spliterator;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 import java.util.stream.Stream;

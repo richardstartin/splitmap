@@ -1,5 +1,8 @@
 package com.openkappa.splitmap;
 
+import org.roaringbitmap.BitmapContainer;
+import org.roaringbitmap.Container;
+
 import java.util.Arrays;
 
 public class PageWriter {
@@ -7,7 +10,6 @@ public class PageWriter {
   private final long[] bitmap = new long[1 << 10];
   private final SplitMap splitMap;
   private short currentKey;
-  private int cardinality;
   private boolean dirty;
 
 
@@ -25,14 +27,14 @@ public class PageWriter {
       flush();
       currentKey = key;
     }
-    cardinality += 1 - Long.bitCount(bitmap[value >>> 6] & (1L << value));
     bitmap[value >>> 6] |= (1L << value);
     dirty = true;
   }
 
   public void flush() {
     if (dirty) {
-      splitMap.insert(currentKey, new DirtyRegion(Arrays.copyOf(bitmap, bitmap.length), cardinality));
+      Container container = new BitmapContainer(bitmap, -1).repairAfterLazy();
+      splitMap.insert(currentKey, container instanceof BitmapContainer ? container.clone() : container);
       clear();
     }
   }
@@ -43,7 +45,6 @@ public class PageWriter {
   }
 
   private void clear() {
-    cardinality = 0;
     Arrays.fill(bitmap, 0L);
     dirty = false;
   }
