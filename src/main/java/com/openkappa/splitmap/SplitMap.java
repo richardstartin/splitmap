@@ -19,4 +19,8 @@ public class SplitMap {
   public boolean contains(int value) {
     return index.get((short)(value >>> 16)).contains((short)value);
   }
+
+  public PrefixIndex<Region> getIndex() {
+    return index;
+  }
 }
