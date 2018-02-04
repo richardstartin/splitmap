@@ -57,9 +57,11 @@ public class Circuits {
   private static class IndexAggregator implements Collector<PrefixIndex<List<Region>>, PrefixIndex<Region>, SplitMap> {
 
     private final Function<List<Region>, Region> circuit;
-    private final ThreadLocal<Region[]> combinerChunk = ThreadLocal.withInitial(() -> new Region[Long.SIZE]);
     private final ThreadLocal<Region[]> accumulatorChunkOut = ThreadLocal.withInitial(() -> new Region[Long.SIZE]);
     private final ThreadLocal<List<Region>[]> accumulatorChunkIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
+
+    // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
+    private final PrefixIndex<Region> target = new PrefixIndex<>();
 
     public IndexAggregator(Function<List<Region>, Region> circuit) {
       this.circuit = circuit;
@@ -67,7 +69,7 @@ public class Circuits {
 
     @Override
     public Supplier<PrefixIndex<Region>> supplier() {
-      return PrefixIndex::new;
+      return () -> target;
     }
 
     @Override
@@ -93,15 +95,7 @@ public class Circuits {
 
     @Override
     public BinaryOperator<PrefixIndex<Region>> combiner() {
-      return (l, r) -> {
-        Region[] chunk = combinerChunk.get();
-        for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
-          if(r.readChunk(i, chunk)) {
-            l.writeChunk(i, r.contributeToKey(i, 0L), chunk);
-          }
-        }
-        return l;
-      };
+      return (l, r) -> l;
     }
 
     @Override
