@@ -76,8 +76,8 @@ public class Circuits {
   private static class IndexAggregator implements Collector<PrefixIndex<List<Container>>, PrefixIndex<Container>, SplitMap> {
 
     private final Function<List<Container>, Container> circuit;
-    private final ThreadLocal<Container[]> accumulatorChunkOut = ThreadLocal.withInitial(() -> new Container[Long.SIZE]);
-    private final ThreadLocal<List<Container>[]> accumulatorChunkIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
+    private final ThreadLocal<Container[]> bufferOut = ThreadLocal.withInitial(() -> new Container[Long.SIZE]);
+    private final ThreadLocal<List<Container>[]> bufferIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
 
     // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
     private final PrefixIndex<Container> target = new PrefixIndex<>();
@@ -94,8 +94,8 @@ public class Circuits {
     @Override
     public BiConsumer<PrefixIndex<Container>, PrefixIndex<List<Container>>> accumulator() {
       return (l, r) -> {
-        List<Container>[] chunkIn = accumulatorChunkIn.get();
-        Container[] chunkOut = accumulatorChunkOut.get();
+        List<Container>[] chunkIn = bufferIn.get();
+        Container[] chunkOut = bufferOut.get();
         for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
           final long mask = r.contributeToKey(i, 0L, (x, y) -> x | y);
           if (mask != 0 && r.readChunk(i, chunkIn)) {
