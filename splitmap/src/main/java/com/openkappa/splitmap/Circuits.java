@@ -22,6 +22,7 @@ public class Circuits {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     return new SplitMap(groupByIntersectingKeys(EMPTY, indices)
             .streamUniformPartitions()
+            .parallel()
             .collect(new IndexAggregator<>(circuit)));
   }
 
@@ -30,6 +31,7 @@ public class Circuits {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     return new SplitMap(groupByKey(EMPTY, indices)
             .streamUniformPartitions()
+            .parallel()
             .collect(new IndexAggregator<>(circuit)));
   }
 

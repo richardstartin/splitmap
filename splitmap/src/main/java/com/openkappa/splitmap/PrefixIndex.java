@@ -61,7 +61,8 @@ public class PrefixIndex<T> {
   }
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
-    return StreamSupport.stream(new UniformSpliterator<>(0, PARTITION_SIZE, this, PARTITIONS), true);
+    return IntStream.range(0, PARTITIONS)
+            .mapToObj(i -> new PrefixIndex<>(keys, values, PARTITION_SIZE * i, PARTITIONS));
   }
 
   public Stream<T> stream() {
@@ -85,60 +86,5 @@ public class PrefixIndex<T> {
   public boolean readChunk(int chunkIndex, T[] ouptut) {
     return values.readChunk(chunkIndex, ouptut);
   }
-
-  private static class UniformSpliterator<T> implements Spliterator<PrefixIndex<T>> {
-
-    private final PrefixIndex<T> index;
-    private int units;
-    private Queue<PrefixIndex<T>> work;
-
-    private UniformSpliterator(int offset, int range, PrefixIndex<T> index, int units) {
-      this.index = index;
-      this.units = units;
-      this.work = new ArrayBlockingQueue<>(units);
-      for (int i = 0; i < units; ++i) {
-        work.offer(new PrefixIndex<>(index.keys, index.values, offset * i, range));
-      }
-    }
-
-    private UniformSpliterator(PrefixIndex<T> index, Queue<PrefixIndex<T>> work) {
-      this.index = index;
-      this.units = 1;
-      this.work = work;
-    }
-
-    @Override
-    public boolean tryAdvance(Consumer<? super PrefixIndex<T>> action) {
-      PrefixIndex<T> next = work.poll();
-      if (null != next) {
-        action.accept(next);
-        return true;
-      }
-      return false;
-    }
-
-    @Override
-    public Spliterator<PrefixIndex<T>> trySplit() {
-      if (units == 1) {
-        return null;
-      }
-      --units;
-      return new UniformSpliterator<>(index, work);
-    }
-
-    @Override
-    public long estimateSize() {
-      return units;
-    }
-
-    @Override
-    public int characteristics() {
-      return Spliterator.SIZED
-              | Spliterator.IMMUTABLE
-              | Spliterator.ORDERED
-              | Spliterator.SUBSIZED;
-    }
-  }
-
-
+  
 }
