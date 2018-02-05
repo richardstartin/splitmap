@@ -18,7 +18,7 @@ public class PageWriter {
   }
 
   public void add(int i) {
-    short key = (short)(i >>> 16);
+    short key = (short) (i >>> 16);
     int value = i & 0xFFFF;
     if (key != currentKey) {
       if (Short.compareUnsigned(currentKey, key) > 0) {

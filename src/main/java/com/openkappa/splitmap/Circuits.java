@@ -3,8 +3,11 @@ package com.openkappa.splitmap;
 import org.roaringbitmap.ArrayContainer;
 import org.roaringbitmap.Container;
 
-import java.util.*;
-import java.util.function.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.LongBinaryOperator;
 import java.util.stream.IntStream;
 
 import static java.lang.Long.lowestOneBit;
@@ -53,7 +56,7 @@ public class Circuits {
                                                         PrefixIndex<T>... indices) {
     PrefixIndex<List<U>> grouped = new PrefixIndex<>();
     List<U> prototype = IntStream.range(0, indices.length).mapToObj(i -> defaultValue).map(map).collect(toList());
-    T[] column = (T[])new Object[Long.SIZE];
+    T[] column = (T[]) new Object[Long.SIZE];
     for (int i = 0; i < 1 << 10; ++i) {
       long word = identity;
       for (PrefixIndex<T> index : indices) {
@@ -70,7 +73,7 @@ public class Circuits {
             if (null != column[j]) {
               if (null == chunk[j]) {
                 chunk[j] = new ArrayList<>(prototype);
-                grouped.insert((short)(i * Long.SIZE + j), chunk[j]);
+                grouped.insert((short) (i * Long.SIZE + j), chunk[j]);
               }
               chunk[j].set(k, map.apply(column[j]));
             }

@@ -19,7 +19,7 @@ public class SplitMap {
   }
 
   public boolean contains(int value) {
-    return index.get((short)(value >>> 16)).contains((short)value);
+    return index.get((short) (value >>> 16)).contains((short) value);
   }
 
   PrefixIndex<Container> getIndex() {

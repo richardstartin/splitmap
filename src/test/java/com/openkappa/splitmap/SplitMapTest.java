@@ -2,7 +2,7 @@ package com.openkappa.splitmap;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertTrue;
 
 public class SplitMapTest {
 

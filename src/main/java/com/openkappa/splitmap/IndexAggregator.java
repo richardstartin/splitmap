@@ -17,7 +17,7 @@ import static java.util.stream.Collector.Characteristics.UNORDERED;
 class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<T>, PrefixIndex<T>> {
 
   private final Function<List<T>, T> circuit;
-  private final ThreadLocal<T[]> bufferOut = ThreadLocal.withInitial(() -> (T[])new Object[Long.SIZE]);
+  private final ThreadLocal<T[]> bufferOut = ThreadLocal.withInitial(() -> (T[]) new Object[Long.SIZE]);
   private final ThreadLocal<List<T>[]> bufferIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
 
   // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
