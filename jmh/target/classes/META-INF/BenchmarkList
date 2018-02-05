@@ -1,1 +1,0 @@
-JMH S 40 com.openkappa.splitmap.CircuitBenchmarks S 67 com.openkappa.splitmap.generated.CircuitBenchmarks_circuit1_jmhTest S 8 circuit1 S 10 Throughput E A 1 1 1 E E E E E E E E E E E E E M 4 5 count 2 3 100 4 1000 9 dirtiness 1 4 0.33 4 keys 3 2 64 3 256 3 512 9 runniness 1 4 0.33 E E E 
