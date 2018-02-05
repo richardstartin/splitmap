@@ -3,7 +3,6 @@ package com.openkappa.splitmap;
 import java.util.Queue;
 import java.util.Spliterator;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.Stream;
@@ -11,12 +10,16 @@ import java.util.stream.StreamSupport;
 
 public class PrefixIndex<T> {
 
+  private static final int PARTITIONS;
+  static {
+    PARTITIONS = Runtime.getRuntime().availableProcessors();
+  }
+  private static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
+
   private final long[] keys;
   private final ChunkedArray<T> values;
-  private final int partitions = Runtime.getRuntime().availableProcessors();
-  private final int partitionSize = (1 << 10) / partitions;
-  private int offset;
-  private int range;
+  private final int offset;
+  private final int range;
 
   public PrefixIndex() {
     this(0, 1 << 10);
@@ -41,12 +44,6 @@ public class PrefixIndex<T> {
     return offset + range;
   }
 
-  public void project(int from, int to) {
-    assert from < to;
-    this.offset = from;
-    this.range = to - from;
-  }
-
   public T get(short key) {
     int pos = key & 0xFFFF;
     if ((keys[pos >>> 6] & (1 << pos)) != 0) {
@@ -62,7 +59,7 @@ public class PrefixIndex<T> {
   }
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
-    return StreamSupport.stream(new UniformSpliterator<>(0, partitionSize, this, partitions), true);
+    return StreamSupport.stream(new UniformSpliterator<>(0, PARTITION_SIZE, this, PARTITIONS), true);
   }
 
   public void writeChunk(int wordIndex, long word, T[] chunk) {

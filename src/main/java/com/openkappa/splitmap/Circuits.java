@@ -13,9 +13,7 @@ import static java.util.stream.Collectors.toList;
 
 public class Circuits {
 
-
   private static final Container EMPTY = new ArrayContainer();
-
 
   public static SplitMap intersectKeysAndEvaluate(Function<List<Container>, Container> circuit,
                                                   SplitMap... splitMaps) {
@@ -108,7 +106,6 @@ public class Circuits {
             l.writeChunk(i, mask, chunkOut);
           }
         }
-        l.project(r.getMinChunkIndex(), r.getMaxChunkIndex());
       };
     }
 
