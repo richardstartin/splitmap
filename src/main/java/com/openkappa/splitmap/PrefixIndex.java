@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.Spliterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
