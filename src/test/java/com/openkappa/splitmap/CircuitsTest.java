@@ -57,4 +57,42 @@ public class CircuitsTest {
     assertTrue(result.contains(1 << 17 | 2));
   }
 
+
+  @Test
+  public void testStringConcatenation() {
+    PrefixIndex<String> index1 = new PrefixIndex<>();
+    index1.insert((short)1, "foo");
+    index1.insert((short)(3), "bar");
+    PrefixIndex<String> index2 = new PrefixIndex<>();
+    index2.insert((short)1, "bar");
+    index2.insert((short)(2), "foo");
+
+    PrefixIndex<String> concatenated = Circuits.groupByKey("", index1, index2)
+            .streamUniformPartitions()
+            .collect(new IndexAggregator<>(strings -> String.join( "|", strings)));
+
+    assertEquals(concatenated.get((short)1), "foo|bar");
+    assertEquals(concatenated.get((short)2), "|foo");
+    assertEquals(concatenated.get((short)3), "bar|");
+  }
+
+
+  @Test
+  public void testBoxedIntegerArithmetic() {
+    PrefixIndex<Integer> index1 = new PrefixIndex<>();
+    index1.insert((short)1, 10);
+    index1.insert((short)(3), 11);
+    PrefixIndex<Integer> index2 = new PrefixIndex<>();
+    index2.insert((short)1, 9);
+    index2.insert((short)(2), 12);
+
+    PrefixIndex<Integer> summation = Circuits.groupByKey(0, index1, index2)
+            .streamUniformPartitions()
+            .collect(new IndexAggregator<>(numbers -> numbers.stream().mapToInt(i -> i).sum()));
+    assertEquals((int)summation.get((short)1), 10 + 9);
+    assertEquals((int)summation.get((short)2), 12);
+    assertEquals((int)summation.get((short)3), 11);
+
+  }
+
 }
