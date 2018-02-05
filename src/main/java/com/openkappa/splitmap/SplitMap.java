@@ -22,7 +22,7 @@ public class SplitMap {
     return index.get((short)(value >>> 16)).contains((short)value);
   }
 
-  public PrefixIndex<Container> getIndex() {
+  PrefixIndex<Container> getIndex() {
     return index;
   }
 }

@@ -1,12 +1,10 @@
 package com.openkappa.splitmap;
 
+import org.roaringbitmap.ArrayContainer;
 import org.roaringbitmap.Container;
 
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Collector;
 
 import static java.lang.Long.lowestOneBit;
@@ -15,41 +13,60 @@ import static java.util.stream.Collectors.toList;
 
 public class Circuits {
 
-  public static SplitMap evaluate(Function<List<Container>, Container> circuit,
-                                  SplitMap... splitMaps) {
-    return groupByKey(splitMaps)
+
+  private static final Container EMPTY = new ArrayContainer();
+
+
+  public static SplitMap intersectKeysAndEvaluate(Function<List<Container>, Container> circuit,
+                                                  SplitMap... splitMaps) {
+    return groupByKey((x, y) -> x & y, -1L, splitMaps)
             .streamUniformPartitions()
             .parallel()
             .collect(new IndexAggregator(circuit));
   }
 
-  public static PrefixIndex<List<Container>> groupByKey(SplitMap... splitMaps) {
+  public static SplitMap uniteKeysAndEvaluate(Function<List<Container>, Container> circuit,
+                                              SplitMap... splitMaps) {
+    return groupByKey((x, y) -> x | y, 0L, splitMaps)
+            .streamUniformPartitions()
+            .parallel()
+            .collect(new IndexAggregator(circuit));
+  }
+
+  public static PrefixIndex<List<Container>> groupByKey(LongBinaryOperator op,
+                                                        long identity,
+                                                        SplitMap... splitMaps) {
     PrefixIndex<List<Container>> grouped = new PrefixIndex<>();
     List<PrefixIndex<Container>> indices = Arrays.stream(splitMaps)
                                               .map(SplitMap::getIndex)
                                               .collect(toList());
+    Container[] empty = new Container[splitMaps.length];
+    Arrays.fill(empty, EMPTY);
+    List<Container> prototype = Arrays.asList(empty);
     Container[] column = new Container[Long.SIZE];
     for (int i = 0; i < 1 << 10; ++i) {
-      long word = 0L;
+      long word = identity;
       for (PrefixIndex<Container> index : indices) {
-        word = index.contributeToKey(i, word);
+        word = index.contributeToKey(i, word, op);
       }
       if (word != 0) {
         List<Container>[] chunk = new List[Long.SIZE];
-        int limit = Long.bitCount(Long.highestOneBit(word) - 1) + 1;
+        int k = 0;
         for (PrefixIndex<Container> index : indices) {
           index.readChunk(i, column);
-          for (int j = 0; j < limit; ++j) {
+          long mask = word;
+          while (mask != 0) {
+            int j = numberOfTrailingZeros(mask);
             if (null != column[j]) {
               if (null == chunk[j]) {
-                chunk[j] = new ArrayList<>();
+                chunk[j] = new ArrayList<>(prototype);
+                grouped.insert((short)(i * Long.SIZE + j), chunk[j]);
               }
-              chunk[j].add(column[j]);
+              chunk[j].set(k, column[j]);
             }
+            mask ^= lowestOneBit(mask);
           }
-        }
-        for (int j = 0; j < limit; ++j) {
-          grouped.insert((short)(i * Long.SIZE + j), chunk[j]);
+          ++k;
         }
       }
     }
@@ -80,7 +97,7 @@ public class Circuits {
         List<Container>[] chunkIn = accumulatorChunkIn.get();
         Container[] chunkOut = accumulatorChunkOut.get();
         for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
-          final long mask = r.contributeToKey(i, 0L);
+          final long mask = r.contributeToKey(i, 0L, (x, y) -> x | y);
           if (mask != 0 && r.readChunk(i, chunkIn)) {
             long temp = mask;
             while (temp != 0) {

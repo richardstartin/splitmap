@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.Spliterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
+import java.util.function.LongBinaryOperator;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -70,8 +71,8 @@ public class PrefixIndex<T> {
     }
   }
 
-  public long contributeToKey(int wordIndex, long value) {
-    return keys[wordIndex] | value;
+  public long contributeToKey(int wordIndex, long value, LongBinaryOperator op) {
+    return op.applyAsLong(keys[wordIndex], value);
   }
 
   public boolean readChunk(int chunkIndex, T[] ouptut) {
