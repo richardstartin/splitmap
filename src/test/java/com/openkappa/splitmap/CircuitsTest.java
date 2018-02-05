@@ -22,7 +22,7 @@ public class CircuitsTest {
     w2.add(1 << 16 | 2);
     w2.add(1 << 17 | 2);
 
-    SplitMap result = Circuits.intersectKeysAndEvaluate(
+    SplitMap result = Circuits.evaluateIfKeysIntersect(
             slice -> null == slice ? null : slice.get(0).and(slice.get(1)),
             w1.toSplitMap(), w2.toSplitMap());
 
@@ -46,7 +46,7 @@ public class CircuitsTest {
     w2.add(1 << 16 | 2);
     w2.add(1 << 17 | 2);
 
-    SplitMap result = Circuits.uniteKeysAndEvaluate(slice -> null == slice ? null : slice.get(0).xor(slice.get(1)),
+    SplitMap result = Circuits.evaluate(slice -> null == slice ? null : slice.get(0).xor(slice.get(1)),
             w1.toSplitMap(), w2.toSplitMap());
 
     assertTrue(result.contains(1));

@@ -6,6 +6,7 @@ import org.roaringbitmap.Container;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.Collector;
+import java.util.stream.IntStream;
 
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
@@ -15,16 +16,15 @@ public class Circuits {
 
   private static final Container EMPTY = new ArrayContainer();
 
-  public static SplitMap intersectKeysAndEvaluate(Function<List<Container>, Container> circuit,
-                                                  SplitMap... splitMaps) {
+  public static SplitMap evaluateIfKeysIntersect(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     return groupByKey((x, y) -> x & y, -1L, splitMaps)
             .streamUniformPartitions()
             .parallel()
             .collect(new IndexAggregator(circuit));
   }
 
-  public static SplitMap uniteKeysAndEvaluate(Function<List<Container>, Container> circuit,
-                                              SplitMap... splitMaps) {
+
+  public static SplitMap evaluate(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     return groupByKey((x, y) -> x | y, 0L, splitMaps)
             .streamUniformPartitions()
             .parallel()
@@ -35,12 +35,8 @@ public class Circuits {
                                                         long identity,
                                                         SplitMap... splitMaps) {
     PrefixIndex<List<Container>> grouped = new PrefixIndex<>();
-    List<PrefixIndex<Container>> indices = Arrays.stream(splitMaps)
-                                              .map(SplitMap::getIndex)
-                                              .collect(toList());
-    Container[] empty = new Container[splitMaps.length];
-    Arrays.fill(empty, EMPTY);
-    List<Container> prototype = Arrays.asList(empty);
+    List<PrefixIndex<Container>> indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).collect(toList());
+    List<Container> prototype = IntStream.range(0, splitMaps.length).mapToObj(i -> EMPTY).collect(toList());
     Container[] column = new Container[Long.SIZE];
     for (int i = 0; i < 1 << 10; ++i) {
       long word = identity;
@@ -121,7 +117,7 @@ public class Circuits {
 
     @Override
     public Set<Characteristics> characteristics() {
-      return EnumSet.noneOf(Characteristics.class);
+      return EnumSet.of(Characteristics.UNORDERED);
     }
   }
 }
