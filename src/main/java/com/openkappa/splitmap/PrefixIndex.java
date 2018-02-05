@@ -2,6 +2,7 @@ package com.openkappa.splitmap;
 
 import java.util.Queue;
 import java.util.Spliterator;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 import java.util.function.LongBinaryOperator;
@@ -88,7 +89,7 @@ public class PrefixIndex<T> {
     private UniformSpliterator(int offset, int range, PrefixIndex<T> index, int units) {
       this.index = index;
       this.units = units;
-      this.work = new ConcurrentLinkedDeque<>();
+      this.work = new ArrayBlockingQueue<>(units);
       for (int i = 0; i < units; ++i) {
         work.offer(new PrefixIndex<>(index.keys, index.values, offset * i, range));
       }
@@ -126,7 +127,10 @@ public class PrefixIndex<T> {
 
     @Override
     public int characteristics() {
-      return Spliterator.SIZED | Spliterator.IMMUTABLE | Spliterator.ORDERED;
+      return Spliterator.SIZED
+              | Spliterator.IMMUTABLE
+              | Spliterator.ORDERED
+              | Spliterator.SUBSIZED;
     }
   }
 
