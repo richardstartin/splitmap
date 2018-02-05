@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testng-results ignored="0" total="8" passed="8" failed="0" skipped="0">
+  <reporter-output>
+  </reporter-output>
+  <suite started-at="2018-02-05T22:51:37Z" name="Command line suite" finished-at="2018-02-05T22:51:37Z" duration-ms="70">
+    <groups>
+    </groups>
+    <test started-at="2018-02-05T22:51:37Z" name="Command line test" finished-at="2018-02-05T22:51:37Z" duration-ms="70">
+      <class name="com.openkappa.splitmap.SplitMapTest">
+        <test-method signature="testWriteToSplitMap()[pri:0, instance:com.openkappa.splitmap.SplitMapTest@63021689]" started-at="2018-02-05T22:51:37Z" name="testWriteToSplitMap" finished-at="2018-02-05T22:51:37Z" duration-ms="0" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- testWriteToSplitMap -->
+      </class> <!-- com.openkappa.splitmap.SplitMapTest -->
+      <class name="com.openkappa.splitmap.CircuitsTest">
+        <test-method signature="testBoxedIntegerArithmetic()[pri:0, instance:com.openkappa.splitmap.CircuitsTest@61230f6a]" started-at="2018-02-05T22:51:37Z" name="testBoxedIntegerArithmetic" finished-at="2018-02-05T22:51:37Z" duration-ms="28" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- testBoxedIntegerArithmetic -->
+        <test-method signature="testCircuit()[pri:0, instance:com.openkappa.splitmap.CircuitsTest@61230f6a]" started-at="2018-02-05T22:51:37Z" name="testCircuit" finished-at="2018-02-05T22:51:37Z" duration-ms="8" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- testCircuit -->
+        <test-method signature="testIntersect()[pri:0, instance:com.openkappa.splitmap.CircuitsTest@61230f6a]" started-at="2018-02-05T22:51:37Z" name="testIntersect" finished-at="2018-02-05T22:51:37Z" duration-ms="3" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- testIntersect -->
+        <test-method signature="testMultidimensionalCount()[pri:0, instance:com.openkappa.splitmap.CircuitsTest@61230f6a]" started-at="2018-02-05T22:51:37Z" name="testMultidimensionalCount" finished-at="2018-02-05T22:51:37Z" duration-ms="5" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- testMultidimensionalCount -->
+        <test-method signature="testStringConcatenation()[pri:0, instance:com.openkappa.splitmap.CircuitsTest@61230f6a]" started-at="2018-02-05T22:51:37Z" name="testStringConcatenation" finished-at="2018-02-05T22:51:37Z" duration-ms="1" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- testStringConcatenation -->
+      </class> <!-- com.openkappa.splitmap.CircuitsTest -->
+      <class name="com.openkappa.splitmap.PrefixIndexTest">
+        <test-method signature="shouldRetrieveInsertedValue()[pri:0, instance:com.openkappa.splitmap.PrefixIndexTest@470f1802]" started-at="2018-02-05T22:51:37Z" name="shouldRetrieveInsertedValue" finished-at="2018-02-05T22:51:37Z" duration-ms="0" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- shouldRetrieveInsertedValue -->
+        <test-method signature="ifValueDoesntExisteGetNull()[pri:0, instance:com.openkappa.splitmap.PrefixIndexTest@470f1802]" started-at="2018-02-05T22:51:37Z" name="ifValueDoesntExisteGetNull" finished-at="2018-02-05T22:51:37Z" duration-ms="0" status="PASS">
+          <reporter-output>
+          </reporter-output>
+        </test-method> <!-- ifValueDoesntExisteGetNull -->
+      </class> <!-- com.openkappa.splitmap.PrefixIndexTest -->
+    </test> <!-- Command line test -->
+  </suite> <!-- Command line suite -->
+</testng-results>

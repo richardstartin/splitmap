@@ -9,15 +9,15 @@ import java.util.stream.IntStream;
 import static com.openkappa.splitmap.DataGenerator.randomSplitmap;
 
 @State(Scope.Benchmark)
-public class BitSlicing {
+public class CircuitBenchmarks {
 
-  @Param("0.3")
+  @Param("0.33")
   double runniness;
-  @Param("0.3")
+  @Param("0.33")
   double dirtiness;
-  @Param("100000")
+  @Param({"64", "256", "512"})
   int keys;
-  @Param("100")
+  @Param({"100", "1000"})
   int count;
 
   SplitMap[] splitMaps;

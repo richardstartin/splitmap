@@ -5,8 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.openkappa</groupId>
-    <artifactId>splitmap</artifactId>
+    <artifactId>splitmap-umbrella</artifactId>
+    <packaging>pom</packaging>
     <version>0.0-SNAPSHOT</version>
+    <modules>
+        <module>splitmap</module>
+        <module>jmh</module>
+    </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -23,27 +28,30 @@
                 <version>6.13.1</version>
                 <scope>test</scope>
             </dependency>
-
-
             <dependency>
                 <groupId>org.roaringbitmap</groupId>
                 <artifactId>RoaringBitmap</artifactId>
                 <version>0.7.0</version>
             </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.lexicalscope.jewelcli</groupId>
+                <artifactId>jewelcli</artifactId>
+                <version>0.8.9</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.roaringbitmap</groupId>
-            <artifactId>RoaringBitmap</artifactId>
-        </dependency>
-    </dependencies>
 
     <build>
         <plugins>
@@ -52,10 +60,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <verbose>true</verbose>
-                    <fork>true</fork>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
+                    <verbose>true</verbose>
+                    <fork>true</fork>
                     <showDeprecation>true</showDeprecation>
                     <failOnError>true</failOnError>
                     <showWarnings>true</showWarnings>
@@ -64,4 +72,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
