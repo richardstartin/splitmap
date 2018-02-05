@@ -2,6 +2,7 @@ package com.openkappa.splitmap;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class ChunkedArray<T> {
 
@@ -30,6 +31,12 @@ public class ChunkedArray<T> {
       Arrays.fill(output, null);
       return false;
     }
+  }
+
+  public Stream<T> streamChunk(int chunkIndex) {
+    return null == chunks[chunkIndex]
+            ? Stream.empty()
+            : Stream.of(chunks[chunkIndex]).filter(Objects::nonNull);
   }
 
   public void writeChunk(int chunkIndex, T[] input) {

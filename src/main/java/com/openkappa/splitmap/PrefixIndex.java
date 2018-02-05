@@ -4,7 +4,9 @@ import java.util.Queue;
 import java.util.Spliterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -60,6 +62,13 @@ public class PrefixIndex<T> {
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
     return StreamSupport.stream(new UniformSpliterator<>(0, PARTITION_SIZE, this, PARTITIONS), true);
+  }
+
+  public Stream<T> stream() {
+    return IntStream.range(offset, offset + range)
+                    .filter(i -> keys[i] != 0)
+                    .mapToObj(values::streamChunk)
+                    .flatMap(Function.identity());
   }
 
   public void writeChunk(int wordIndex, long word, T[] chunk) {
