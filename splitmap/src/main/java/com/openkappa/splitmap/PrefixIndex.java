@@ -8,11 +8,10 @@ import java.util.stream.Stream;
 public class PrefixIndex<T> {
 
   private static final int PARTITIONS;
-  private static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
-
   static {
     PARTITIONS = Runtime.getRuntime().availableProcessors();
   }
+  private static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
   private final long[] keys;
   private final ChunkedArray<T> values;

@@ -58,33 +58,39 @@ public class Circuits {
                                                         PrefixIndex<T>... indices) {
     PrefixIndex<List<U>> grouped = new PrefixIndex<>();
     List<U> prototype = IntStream.range(0, indices.length).mapToObj(i -> defaultValue).map(map).collect(toList());
-    T[] column = (T[]) new Object[Long.SIZE];
-    for (int i = 0; i < 1 << 10; ++i) {
-      long word = identity;
-      for (PrefixIndex<T> index : indices) {
-        word = index.contributeToKey(i, word, op);
-      }
-      if (word != 0) {
-        List<U>[] chunk = new List[Long.SIZE];
-        int k = 0;
-        for (PrefixIndex<T> index : indices) {
-          index.readChunk(i, column);
-          long mask = word;
-          while (mask != 0) {
-            int j = numberOfTrailingZeros(mask);
-            if (null != column[j]) {
-              if (null == chunk[j]) {
-                chunk[j] = new ArrayList<>(prototype);
-                grouped.insert((short) (i * Long.SIZE + j), chunk[j]);
+    int partitions = Runtime.getRuntime().availableProcessors();
+    int partitionSize = (1 << 10) / partitions;
+    IntStream.range(0, partitions)
+            .parallel()
+            .forEach(p -> {
+              T[] column = (T[]) new Object[Long.SIZE];
+              for (int i = partitionSize * p; i < partitionSize * (p + 1); ++i) {
+                long word = identity;
+                for (PrefixIndex<T> index : indices) {
+                  word = index.contributeToKey(i, word, op);
+                }
+                if (word != 0) {
+                  List<U>[] chunk = new List[Long.SIZE];
+                  int k = 0;
+                  for (PrefixIndex<T> index : indices) {
+                    index.readChunk(i, column);
+                    long mask = word;
+                    while (mask != 0) {
+                      int j = numberOfTrailingZeros(mask);
+                      if (null != column[j]) {
+                        if (null == chunk[j]) {
+                          chunk[j] = new ArrayList<>(prototype);
+                          grouped.insert((short) (i * Long.SIZE + j), chunk[j]);
+                        }
+                        chunk[j].set(k, map.apply(column[j]));
+                      }
+                      mask ^= lowestOneBit(mask);
+                    }
+                    ++k;
+                  }
+                }
               }
-              chunk[j].set(k, map.apply(column[j]));
-            }
-            mask ^= lowestOneBit(mask);
-          }
-          ++k;
-        }
-      }
-    }
+            });
     return grouped;
   }
 

@@ -6,12 +6,15 @@ import org.roaringbitmap.Container;
 import org.roaringbitmap.FastAggregation;
 import org.roaringbitmap.RoaringBitmap;
 
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static com.openkappa.splitmap.DataGenerator.randomArray;
 import static com.openkappa.splitmap.DataGenerator.randomSplitmap;
 
 @State(Scope.Benchmark)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class CircuitBenchmarks {
 
   @Param("0.33")
@@ -24,6 +27,7 @@ public class CircuitBenchmarks {
   int count;
 
   SplitMap[] splitMaps;
+  PrefixIndex<Container>[] indices;
   RoaringBitmap[] bitmaps;
 
   @Setup(Level.Trial)
@@ -31,6 +35,7 @@ public class CircuitBenchmarks {
     splitMaps = IntStream.range(0, count)
             .mapToObj(i -> randomSplitmap(keys, runniness, dirtiness))
             .toArray(SplitMap[]::new);
+    indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     bitmaps = IntStream.range(0, count)
             .mapToObj(i -> RoaringBitmap.bitmapOf(randomArray(keys, runniness, dirtiness)))
             .toArray(RoaringBitmap[]::new);
@@ -50,6 +55,11 @@ public class CircuitBenchmarks {
       }
       return difference.iand(union);
     }, splitMaps);
+  }
+
+  @Benchmark
+  public PrefixIndex<?> groupByKey() {
+    return Circuits.groupByKey(new ArrayContainer(), indices);
   }
 
   @Benchmark
