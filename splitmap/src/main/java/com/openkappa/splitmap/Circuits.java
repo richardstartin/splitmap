@@ -63,7 +63,6 @@ public class Circuits {
     IntStream.range(0, partitions)
             .parallel()
             .forEach(p -> {
-              T[] column = (T[]) new Object[Long.SIZE];
               for (int i = partitionSize * p; i < partitionSize * (p + 1); ++i) {
                 long word = identity;
                 for (PrefixIndex<T> index : indices) {
@@ -73,7 +72,10 @@ public class Circuits {
                   List<U>[] chunk = new List[Long.SIZE];
                   int k = 0;
                   for (PrefixIndex<T> index : indices) {
-                    index.readChunk(i, column);
+                    T[] column = index.getChunkNoCopy(i);
+                    if (null == column) {
+                      continue;
+                    }
                     long mask = word;
                     while (mask != 0) {
                       int j = numberOfTrailingZeros(mask);
