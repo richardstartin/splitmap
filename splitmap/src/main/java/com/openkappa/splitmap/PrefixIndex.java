@@ -60,12 +60,30 @@ public class PrefixIndex<T> {
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
     return IntStream.range(0, PARTITIONS)
-            .mapToObj(i -> new PrefixIndex<>(keys, values, PARTITION_SIZE * i, PARTITIONS));
+            .mapToObj(i -> new PrefixIndex<>(keys, values, PARTITION_SIZE * i, PARTITION_SIZE));
+  }
+
+  public void forEach(KeyConsumer<T> consumer) {
+    int prefix = offset * Long.SIZE;
+    for (int i = offset; i < offset + range; ++i) {
+      long mask = keys[i];
+      if (mask != 0) {
+        T[] chunk = values.getChunkNoCopy(i);
+        if (null != chunk) {
+          while (mask != 0) {
+            int j = numberOfTrailingZeros(mask);
+            consumer.accept((short)(prefix + j), chunk[j]);
+            mask ^= lowestOneBit(mask);
+          }
+        }
+      }
+      prefix += Long.SIZE;
+    }
   }
 
   public long reduce(long initial, ToLongFunction<T> map, LongBinaryOperator reduce) {
     long result = initial;
-    for (int i = 0; i < keys.length; ++i) {
+    for (int i = offset; i < offset + range; ++i) {
       long mask = keys[i];
       if (mask != 0) {
         T[] chunk = values.getChunkNoCopy(i);
