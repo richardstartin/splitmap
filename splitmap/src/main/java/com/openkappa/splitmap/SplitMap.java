@@ -24,7 +24,9 @@ public class SplitMap {
   }
 
   public long getCardinality() {
-    return index.reduceInt(0, Container::getCardinality, (x, y) -> x + y);
+    return index.streamBalancedPartitions()
+      .mapToInt(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
+      .sum();
   }
 
   PrefixIndex<Container> getIndex() {

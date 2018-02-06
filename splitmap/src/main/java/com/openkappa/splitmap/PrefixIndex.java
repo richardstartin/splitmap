@@ -16,7 +16,7 @@ public class PrefixIndex<T> {
   }
   static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
-  private final long[] keyDistribution = new long[64];
+  private final long[] dirtyWords = new long[64];
   private final long[] keys;
   private final ChunkedArray<T> values;
   private final int offset;
@@ -60,21 +60,21 @@ public class PrefixIndex<T> {
   public void insert(short key, T value) {
     int pos = key & 0xFFFF;
     keys[pos >>> 6] |= (1L << pos);
-    keyDistribution[pos >>> 12] |= (1L << (pos >>> 6));
+    dirtyWords[pos >>> 12] |= (1L << (pos >>> 6));
     values.put(pos, value);
   }
 
   public Stream<PrefixIndex<T>> streamBalancedPartitions() {
     int weight = 0;
-    for (int i = 0; i < keyDistribution.length; ++i) {
-      weight += Long.bitCount(keyDistribution[i]);
+    for (int i = 0; i < dirtyWords.length; ++i) {
+      weight += Long.bitCount(dirtyWords[i]);
     }
     int weightPerPartition = weight / PARTITIONS;
     Stream.Builder<PrefixIndex<T>> builder = Stream.builder();
     int offset = 0;
     int range = 0;
-    for (int i = 0; i < keyDistribution.length && offset < weight; ++i) {
-      int newRange = range + Long.bitCount(keyDistribution[i]);
+    for (int i = 0; i < dirtyWords.length && offset < weight; ++i) {
+      int newRange = range + Long.bitCount(dirtyWords[i]);
       if (newRange >= weightPerPartition) {
         builder.add(new PrefixIndex<>(keys, values, offset, newRange));
         offset += newRange;
@@ -168,7 +168,7 @@ public class PrefixIndex<T> {
   public void writeChunk(int wordIndex, long word, T[] chunk) {
     keys[wordIndex] = word;
     if (word != 0 && null != chunk) {
-      keyDistribution[wordIndex >>> 6] |= (1L << wordIndex);
+      dirtyWords[wordIndex >>> 6] |= (1L << wordIndex);
       values.writeChunk(wordIndex, chunk);
     }
   }

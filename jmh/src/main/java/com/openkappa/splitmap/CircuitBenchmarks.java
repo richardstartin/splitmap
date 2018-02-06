@@ -1,10 +1,7 @@
 package com.openkappa.splitmap;
 
 import org.openjdk.jmh.annotations.*;
-import org.roaringbitmap.ArrayContainer;
-import org.roaringbitmap.Container;
-import org.roaringbitmap.FastAggregation;
-import org.roaringbitmap.RoaringBitmap;
+import org.roaringbitmap.*;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -64,6 +61,17 @@ public class CircuitBenchmarks {
 
   @Benchmark
   public RoaringBitmap circuit1Roaring() {
+//    return ParallelAggregation.evaluate(slice -> {
+//              Container difference = new ArrayContainer();
+//              Container union = new ArrayContainer();
+//              for (Container container : slice) {
+//                if (container.getCardinality() != 0) {
+//                  difference = difference.ixor(container);
+//                  union = union.lazyIOR(container);
+//                }
+//              }
+//              return difference.iand(union);
+//            }, bitmaps);
     return RoaringBitmap.and(FastAggregation.or(bitmaps), FastAggregation.xor(bitmaps));
   }
 }
