@@ -63,7 +63,7 @@ public class PrefixIndex<T> {
             .mapToObj(i -> new PrefixIndex<>(keys, values, PARTITION_SIZE * i, PARTITION_SIZE));
   }
 
-  public void forEach(KeyConsumer<T> consumer) {
+  public void forEach(KeyValueConsumer<T> consumer) {
     int prefix = offset * Long.SIZE;
     for (int i = offset; i < offset + range; ++i) {
       long mask = keys[i];

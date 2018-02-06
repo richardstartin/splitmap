@@ -1,6 +1,6 @@
 package com.openkappa.splitmap;
 
 @FunctionalInterface
-public interface KeyConsumer<T> {
+public interface KeyValueConsumer<T> {
   void accept(short key, T value);
 }

@@ -18,7 +18,6 @@ import static java.util.stream.Collector.Characteristics.UNORDERED;
 class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<T>, PrefixIndex<T>> {
 
   private final Function<List<T>, T> circuit;
-  private final ThreadLocal<T[]> bufferOut = ThreadLocal.withInitial(() -> (T[]) new Object[Long.SIZE]);
 
   // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
   private final PrefixIndex<T> target = new PrefixIndex<>();
@@ -36,7 +35,7 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
   public BiConsumer<PrefixIndex<T>, PrefixIndex<List<T>>> accumulator() {
     return (l, r) -> {
       Object[] chunkIn;
-      T[] chunkOut = bufferOut.get();
+      T[] chunkOut = (T[]) new Object[Long.SIZE];
       for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
         long keyMask = r.readKeyWord(i);
         if (keyMask != 0 && (chunkIn = r.getChunkNoCopy(i)) != null) {
