@@ -11,6 +11,7 @@ import java.util.stream.Collector;
 
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
+import static java.util.stream.Collector.Characteristics.CONCURRENT;
 import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 
@@ -18,7 +19,6 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
 
   private final Function<List<T>, T> circuit;
   private final ThreadLocal<T[]> bufferOut = ThreadLocal.withInitial(() -> (T[]) new Object[Long.SIZE]);
-  private final ThreadLocal<List<T>[]> bufferIn = ThreadLocal.withInitial(() -> new List[Long.SIZE]);
 
   // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
   private final PrefixIndex<T> target = new PrefixIndex<>();
@@ -35,18 +35,23 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
   @Override
   public BiConsumer<PrefixIndex<T>, PrefixIndex<List<T>>> accumulator() {
     return (l, r) -> {
-      List<T>[] chunkIn = bufferIn.get();
+      Object[] chunkIn;
       T[] chunkOut = bufferOut.get();
       for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
-        final long mask = r.contributeToKey(i, 0L, (x, y) -> x | y);
-        if (mask != 0 && r.readChunk(i, chunkIn)) {
-          long temp = mask;
+        long keyMask = r.readKeyWord(i);
+        if (keyMask != 0 && (chunkIn = r.getChunkNoCopy(i)) != null) {
+          long temp = keyMask;
           while (temp != 0) {
             int j = numberOfTrailingZeros(temp);
-            chunkOut[j] = circuit.apply(chunkIn[j]);
+            T reduced = circuit.apply((List<T>)chunkIn[j]);
+            if (null != reduced) {
+              chunkOut[j] = reduced;
+            } else {
+              keyMask ^= lowestOneBit(temp);
+            }
             temp ^= lowestOneBit(temp);
           }
-          l.writeChunk(i, mask, chunkOut);
+          l.writeChunk(i, keyMask, chunkOut);
         }
       }
     };
@@ -64,6 +69,6 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
 
   @Override
   public Set<Characteristics> characteristics() {
-    return EnumSet.of(UNORDERED, IDENTITY_FINISH);
+    return EnumSet.of(UNORDERED, IDENTITY_FINISH, CONCURRENT);
   }
 }

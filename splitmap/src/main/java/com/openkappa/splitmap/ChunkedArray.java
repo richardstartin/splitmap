@@ -33,6 +33,10 @@ public class ChunkedArray<T> {
     }
   }
 
+  T[] getChunkNoCopy(int chunkIndex) {
+    return chunks[chunkIndex];
+  }
+
   public Stream<T> streamChunk(int chunkIndex) {
     return null == chunks[chunkIndex]
             ? Stream.empty()

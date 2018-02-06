@@ -19,7 +19,12 @@ public class SplitMap {
   }
 
   public boolean contains(int value) {
-    return index.get((short) (value >>> 16)).contains((short) value);
+    Container container = index.get((short) (value >>> 16));
+    return null != container && container.contains((short) value);
+  }
+
+  public long getCardinality() {
+    return index.reduce(0L, Container::getCardinality, (x, y) -> x + y);
   }
 
   PrefixIndex<Container> getIndex() {

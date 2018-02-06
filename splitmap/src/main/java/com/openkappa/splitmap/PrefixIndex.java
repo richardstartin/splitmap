@@ -1,9 +1,12 @@
 package com.openkappa.splitmap;
 
-import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
+import java.util.function.ToLongFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import static java.lang.Long.lowestOneBit;
+import static java.lang.Long.numberOfTrailingZeros;
 
 public class PrefixIndex<T> {
 
@@ -60,11 +63,21 @@ public class PrefixIndex<T> {
             .mapToObj(i -> new PrefixIndex<>(keys, values, PARTITION_SIZE * i, PARTITIONS));
   }
 
-  public Stream<T> stream() {
-    return IntStream.range(offset, offset + range)
-            .filter(i -> keys[i] != 0)
-            .mapToObj(values::streamChunk)
-            .flatMap(Function.identity());
+  public long reduce(long initial, ToLongFunction<T> map, LongBinaryOperator reduce) {
+    long result = initial;
+    for (int i = 0; i < keys.length; ++i) {
+      long mask = keys[i];
+      if (mask != 0) {
+        T[] chunk = values.getChunkNoCopy(i);
+        if (null != chunk) {
+          while (mask != 0) {
+            result = reduce.applyAsLong(result, map.applyAsLong(chunk[numberOfTrailingZeros(mask)]));
+            mask ^= lowestOneBit(mask);
+          }
+        }
+      }
+    }
+    return result;
   }
 
   public void writeChunk(int wordIndex, long word, T[] chunk) {
@@ -74,12 +87,20 @@ public class PrefixIndex<T> {
     }
   }
 
-  public long contributeToKey(int wordIndex, long value, LongBinaryOperator op) {
+  public long computeKeyWord(int wordIndex, long value, LongBinaryOperator op) {
     return op.applyAsLong(keys[wordIndex], value);
+  }
+
+  public long readKeyWord(int wordIndex) {
+    return keys[wordIndex];
   }
 
   public boolean readChunk(int chunkIndex, T[] ouptut) {
     return values.readChunk(chunkIndex, ouptut);
+  }
+
+  T[] getChunkNoCopy(int chunkIndex) {
+    return values.getChunkNoCopy(chunkIndex);
   }
 
 }

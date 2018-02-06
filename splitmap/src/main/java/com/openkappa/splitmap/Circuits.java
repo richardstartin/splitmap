@@ -67,7 +67,7 @@ public class Circuits {
               for (int i = partitionSize * p; i < partitionSize * (p + 1); ++i) {
                 long word = identity;
                 for (PrefixIndex<T> index : indices) {
-                  word = index.contributeToKey(i, word, op);
+                  word = index.computeKeyWord(i, word, op);
                 }
                 if (word != 0) {
                   List<U>[] chunk = new List[Long.SIZE];
