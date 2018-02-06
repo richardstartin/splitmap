@@ -24,7 +24,7 @@ public class SplitMap {
   }
 
   public long getCardinality() {
-    return index.reduce(0L, Container::getCardinality, (x, y) -> x + y);
+    return index.reduceInt(0, Container::getCardinality, (x, y) -> x + y);
   }
 
   PrefixIndex<Container> getIndex() {

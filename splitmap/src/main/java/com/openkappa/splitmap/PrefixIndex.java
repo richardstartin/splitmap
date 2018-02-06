@@ -1,7 +1,6 @@
 package com.openkappa.splitmap;
 
-import java.util.function.LongBinaryOperator;
-import java.util.function.ToLongFunction;
+import java.util.function.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -85,7 +84,7 @@ public class PrefixIndex<T> {
     }
   }
 
-  public long reduce(long initial, ToLongFunction<T> map, LongBinaryOperator reduce) {
+  public long reduceLong(long initial, ToLongFunction<T> map, LongBinaryOperator reduce) {
     long result = initial;
     for (int i = offset; i < offset + range; ++i) {
       long mask = keys[i];
@@ -94,6 +93,40 @@ public class PrefixIndex<T> {
         if (null != chunk) {
           while (mask != 0) {
             result = reduce.applyAsLong(result, map.applyAsLong(chunk[numberOfTrailingZeros(mask)]));
+            mask ^= lowestOneBit(mask);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  public double reduceDouble(double initial, ToDoubleFunction<T> map, DoubleBinaryOperator reduce) {
+    double result = initial;
+    for (int i = offset; i < offset + range; ++i) {
+      long mask = keys[i];
+      if (mask != 0) {
+        T[] chunk = values.getChunkNoCopy(i);
+        if (null != chunk) {
+          while (mask != 0) {
+            result = reduce.applyAsDouble(result, map.applyAsDouble(chunk[numberOfTrailingZeros(mask)]));
+            mask ^= lowestOneBit(mask);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  public int reduceInt(int initial, ToIntFunction<T> map, IntBinaryOperator reduce) {
+    int result = initial;
+    for (int i = offset; i < offset + range; ++i) {
+      long mask = keys[i];
+      if (mask != 0) {
+        T[] chunk = values.getChunkNoCopy(i);
+        if (null != chunk) {
+          while (mask != 0) {
+            result = reduce.applyAsInt(result, map.applyAsInt(chunk[numberOfTrailingZeros(mask)]));
             mask ^= lowestOneBit(mask);
           }
         }
