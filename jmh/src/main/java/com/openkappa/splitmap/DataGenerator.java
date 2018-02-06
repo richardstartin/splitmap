@@ -7,6 +7,8 @@ import java.util.stream.IntStream;
 public class DataGenerator {
 
 
+  private static final ThreadLocal<long[]> bits = ThreadLocal.withInitial(() -> new long[1 << 10]);
+
   public static SplitMap randomSplitmap(int maxKeys, double runniness, double dirtiness) {
     int[] keys = createSorted16BitInts(ThreadLocalRandom.current().nextInt(1, maxKeys));
     double rleLimit = runniness;
@@ -46,8 +48,6 @@ public class DataGenerator {
               return stream.map(i -> (key << 16) | i);
             }).toArray();
   }
-
-  private static final ThreadLocal<long[]> bits = ThreadLocal.withInitial(() -> new long[1 << 10]);
 
   public static IntStream rleRegion() {
     int numRuns = ThreadLocalRandom.current().nextInt(1, 2048);

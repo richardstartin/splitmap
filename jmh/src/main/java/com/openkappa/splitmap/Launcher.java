@@ -15,33 +15,6 @@ import org.openjdk.jmh.runner.options.VerboseMode;
 
 public class Launcher {
 
-  public interface ParsedArgs {
-
-    @Option(defaultValue = "com.openkappa.splitmap.*", shortName = "i", longName = "include")
-    String include();
-
-    @Option(shortName = "p", longName = "print-assembly")
-    Boolean printAssembly();
-
-    @Option(shortName = "n", longName = "method-name", defaultToNull = true)
-    String methodName();
-
-    @Option(shortName = "c", longName = "print-compilation")
-    Boolean printCompilation();
-
-    @Option(shortName = "x", longName = "perfasm")
-    Boolean doPerfasm();
-
-    @Option(defaultValue = "Throughput", shortName = "m", longName = "mode")
-    Mode mode();
-
-    @Option(defaultValue = "10", shortName = "t", longName = "time-seconds")
-    int measurementTime();
-
-    @Option(defaultToNull = true, shortName = "o", longName = "output")
-    String output();
-  }
-
   public static void main(String[] args) throws RunnerException {
     ParsedArgs parsed = CliFactory.parseArguments(ParsedArgs.class, args);
     ChainedOptionsBuilder builder = new OptionsBuilder()
@@ -83,5 +56,32 @@ public class Launcher {
     Runner runner = new Runner(builder.build());
     runner.list();
     runner.run();
+  }
+
+  public interface ParsedArgs {
+
+    @Option(defaultValue = "com.openkappa.splitmap.*", shortName = "i", longName = "include")
+    String include();
+
+    @Option(shortName = "p", longName = "print-assembly")
+    Boolean printAssembly();
+
+    @Option(shortName = "n", longName = "method-name", defaultToNull = true)
+    String methodName();
+
+    @Option(shortName = "c", longName = "print-compilation")
+    Boolean printCompilation();
+
+    @Option(shortName = "x", longName = "perfasm")
+    Boolean doPerfasm();
+
+    @Option(defaultValue = "Throughput", shortName = "m", longName = "mode")
+    Mode mode();
+
+    @Option(defaultValue = "10", shortName = "t", longName = "time-seconds")
+    int measurementTime();
+
+    @Option(defaultToNull = true, shortName = "o", longName = "output")
+    String output();
   }
 }

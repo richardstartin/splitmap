@@ -1,22 +1,18 @@
 package com.openkappa.splitmap;
 
-import java.util.Queue;
-import java.util.Spliterator;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class PrefixIndex<T> {
 
   private static final int PARTITIONS;
+  private static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
+
   static {
     PARTITIONS = Runtime.getRuntime().availableProcessors();
   }
-  private static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
   private final long[] keys;
   private final ChunkedArray<T> values;
@@ -67,9 +63,9 @@ public class PrefixIndex<T> {
 
   public Stream<T> stream() {
     return IntStream.range(offset, offset + range)
-                    .filter(i -> keys[i] != 0)
-                    .mapToObj(values::streamChunk)
-                    .flatMap(Function.identity());
+            .filter(i -> keys[i] != 0)
+            .mapToObj(values::streamChunk)
+            .flatMap(Function.identity());
   }
 
   public void writeChunk(int wordIndex, long word, T[] chunk) {
@@ -86,5 +82,5 @@ public class PrefixIndex<T> {
   public boolean readChunk(int chunkIndex, T[] ouptut) {
     return values.readChunk(chunkIndex, ouptut);
   }
-  
+
 }
