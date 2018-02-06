@@ -13,7 +13,7 @@ For instance, to compute a sum product on a dataset filtered such that only one 
     double revenue = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), 
                                        februarySalesIndex, luxuryProductsIndex)
             .getIndex()
-            .streamUniformPartitions()
+            .streamBalancedPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] sumProduct =  new double[1];
