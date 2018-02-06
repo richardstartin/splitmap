@@ -25,6 +25,10 @@ public class PrefixIndex<T> {
     this(0, 1 << 10);
   }
 
+  public PrefixIndex(long[] keys) {
+    this(keys, new ChunkedArray<>(), 0, 1 << 10);
+  }
+
   PrefixIndex(long[] keys, ChunkedArray<T> values, int offset, int range) {
     this.keys = keys;
     this.values = values;
@@ -100,7 +104,7 @@ public class PrefixIndex<T> {
 
   public void writeChunk(int wordIndex, long word, T[] chunk) {
     keys[wordIndex] = word;
-    if (word != 0) {
+    if (word != 0 && null != chunk) {
       values.writeChunk(wordIndex, chunk);
     }
   }

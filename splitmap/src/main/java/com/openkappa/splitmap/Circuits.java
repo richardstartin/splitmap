@@ -6,6 +6,7 @@ import org.roaringbitmap.Container;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.IntStream;
@@ -17,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 public class Circuits {
 
   private static final Container EMPTY = new ArrayContainer();
+  private static final ThreadLocal<long[]> TEMPORARY_KEYS = ThreadLocal.withInitial(() -> new long[1 << 10]);
 
   public static SplitMap evaluateIfKeysIntersect(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
@@ -35,29 +37,20 @@ public class Circuits {
             .collect(new IndexAggregator<>(circuit)));
   }
 
-  public static <T, U> PrefixIndex<List<U>> groupByKey(T defaultValue, Function<T, U> map, PrefixIndex<T>... indices) {
-    return groupByKey((x, y) -> x | y, 0L, defaultValue, map, indices);
+  static <T> PrefixIndex<List<T>> groupByKey(T defaultValue,  PrefixIndex<T>... indices) {
+    return groupByKey((x, y) -> x | y, 0L, defaultValue, indices);
   }
 
-  public static <T> PrefixIndex<List<T>> groupByKey(T defaultValue, PrefixIndex<T>... indices) {
-    return groupByKey(defaultValue, Function.identity(), indices);
+  static <T> PrefixIndex<List<T>> groupByIntersectingKeys(T defaultValue, PrefixIndex<T>... indices) {
+    return groupByKey((x, y) -> x & y, -1L, defaultValue, indices);
   }
 
-  public static <T, U> PrefixIndex<List<U>> groupByIntersectingKeys(T defaultValue, Function<T, U> map, PrefixIndex<T>... indices) {
-    return groupByKey((x, y) -> x & y, -1L, defaultValue, map, indices);
-  }
-
-  public static <T> PrefixIndex<List<T>> groupByIntersectingKeys(T defaultValue, PrefixIndex<T>... indices) {
-    return groupByIntersectingKeys(defaultValue, Function.identity(), indices);
-  }
-
-  private static <T, U> PrefixIndex<List<U>> groupByKey(LongBinaryOperator op,
+  private static <T> PrefixIndex<List<T>> groupByKey(LongBinaryOperator op,
                                                         long identity,
                                                         T defaultValue,
-                                                        Function<T, U> map,
                                                         PrefixIndex<T>... indices) {
-    PrefixIndex<List<U>> grouped = new PrefixIndex<>();
-    List<U> prototype = IntStream.range(0, indices.length).mapToObj(i -> defaultValue).map(map).collect(toList());
+    PrefixIndex<List<T>> grouped = new PrefixIndex<>(TEMPORARY_KEYS.get());
+    List<T> prototype = IntStream.range(0, indices.length).mapToObj(i -> defaultValue).collect(toList());
     int partitions = Runtime.getRuntime().availableProcessors();
     int partitionSize = (1 << 10) / partitions;
     IntStream.range(0, partitions)
@@ -68,8 +61,9 @@ public class Circuits {
                 for (PrefixIndex<T> index : indices) {
                   word = index.computeKeyWord(i, word, op);
                 }
+                grouped.writeChunk(i, word, null);
                 if (word != 0) {
-                  List<U>[] chunk = new List[Long.SIZE];
+                  List<T>[] chunk = new List[Long.SIZE];
                   int k = 0;
                   for (PrefixIndex<T> index : indices) {
                     T[] column = index.getChunkNoCopy(i);
@@ -82,18 +76,17 @@ public class Circuits {
                       if (null != column[j]) {
                         if (null == chunk[j]) {
                           chunk[j] = new ArrayList<>(prototype);
-                          grouped.insert((short) (i * Long.SIZE + j), chunk[j]);
                         }
-                        chunk[j].set(k, map.apply(column[j]));
+                        chunk[j].set(k, column[j]);
                       }
                       mask ^= lowestOneBit(mask);
                     }
                     ++k;
                   }
+                  grouped.writeChunk(i, word, chunk);
                 }
               }
             });
     return grouped;
   }
-
 }
