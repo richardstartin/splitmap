@@ -10,11 +10,11 @@ import static java.lang.Long.numberOfTrailingZeros;
 public class PrefixIndex<T> {
 
   static final int PARTITIONS;
-  static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
   static {
     PARTITIONS = Runtime.getRuntime().availableProcessors();
   }
+  static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
   private final long[] keyDistribution = new long[64];
   private final long[] keys;
