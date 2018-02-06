@@ -4,6 +4,7 @@ import org.openjdk.jmh.annotations.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -18,23 +19,25 @@ public class AggregationBenchmarks {
   private int tradeCount;
   @Param({"10", "100"})
   private int instrumentCount;
-
+  @Param({"5", "10"})
+  private int ccyCount;
 
   private PrefixIndex<double[]> qty;
   private PrefixIndex<double[]> price;
   private SplitMap[] instrumentIndex;
+  private SplitMap[] ccyIndex;
   private List<Trade> trades;
+  private String[] instrumentNames;
+  private String[] currencies;
   private int instId1;
-  private int instId2;
+  private int ccyId;
 
   @Setup(Level.Trial)
   public void setup() {
     generateRandomTrades();
     indexTrades();
     instId1 = ThreadLocalRandom.current().nextInt(instrumentCount);
-    do {
-      instId2 = ThreadLocalRandom.current().nextInt(instrumentCount);
-    } while (instId2 == instId1);
+    ccyId = ThreadLocalRandom.current().nextInt(ccyCount);
   }
 
   @Benchmark
@@ -59,17 +62,17 @@ public class AggregationBenchmarks {
   @Benchmark
   public double qtyXPriceForInstrumentStream() {
     return trades.parallelStream()
-            .filter(trade -> trade.instrumentId == instId1)
+            .filter(trade -> trade.instrumentId.equals(instrumentNames[instId1]))
             .mapToDouble(trade -> trade.qty * trade.price)
             .sum();
   }
 
 
   @Benchmark
-  public double qtyXPriceForInstrumentIndexOR() {
+  public double qtyXPriceForInstrumentIndexXOR() {
 
-    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)),
-            instrumentIndex[instId1], instrumentIndex[instId2])
+    return Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
+            instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
             .streamUniformPartitions()
             .parallel()
@@ -86,16 +89,21 @@ public class AggregationBenchmarks {
 
 
   @Benchmark
-  public double qtyXPriceForInstrumentStreamOR() {
+  public double qtyXPriceForInstrumentStreamXOR() {
     return trades.parallelStream()
-            .filter(trade -> trade.instrumentId == instId1 || trade.instrumentId == instId2)
+            .filter(trade ->
+                    ((trade.instrumentId.equals(instrumentNames[instId1]) && !trade.ccyId.equals(currencies[ccyId]))
+                    || (!trade.instrumentId.equals(instrumentNames[instId1]) && trade.ccyId.equals(currencies[ccyId]))))
             .mapToDouble(trade -> trade.qty * trade.price)
             .sum();
   }
 
 
   private void indexTrades() {
-    PageWriter[] writers = IntStream.range(0, instrumentCount)
+    PageWriter[] instrumentWriters = IntStream.range(0, instrumentCount)
+            .mapToObj(i -> new PageWriter())
+            .toArray(PageWriter[]::new);
+    PageWriter[] ccyWriters = IntStream.range(0, ccyCount)
             .mapToObj(i -> new PageWriter())
             .toArray(PageWriter[]::new);
     double[] qtyPage = new double[1 << 16];
@@ -108,22 +116,34 @@ public class AggregationBenchmarks {
         qty.insert((short)((index >>> 16) - 1), Arrays.copyOf(qtyPage, qtyPage.length));
         price.insert((short)((index >>> 16) - 1), Arrays.copyOf(pricePage, pricePage.length));
       }
-      writers[trade.instrumentId].add(index);
+      instrumentWriters[Arrays.binarySearch(instrumentNames, trade.instrumentId)].add(index);
+      ccyWriters[Arrays.binarySearch(currencies, trade.ccyId)].add(index);
       qtyPage[index & 0xFFFF] = trade.qty;
       pricePage[index & 0xFFFF] = trade.price;
       ++index;
     }
     qty.insert((short)(index >>> 16), Arrays.copyOf(qtyPage, qtyPage.length));
     price.insert((short)(index >>> 16), Arrays.copyOf(pricePage, pricePage.length));
-    instrumentIndex = Arrays.stream(writers).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);
+    instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);
+    ccyIndex = Arrays.stream(ccyWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);
   }
 
   private void generateRandomTrades() {
+    currencies = IntStream.range(0, ccyCount)
+            .mapToObj(i -> UUID.randomUUID().toString())
+            .sorted()
+            .toArray(String[]::new);
+    instrumentNames = IntStream.range(0, instrumentCount)
+            .mapToObj(i -> UUID.randomUUID().toString())
+            .sorted()
+            .toArray(String[]::new);
     trades = IntStream.range(0, tradeCount)
             .mapToObj(i -> new Trade(ThreadLocalRandom.current().nextDouble(),
                     ThreadLocalRandom.current().nextDouble(),
-                    ThreadLocalRandom.current().nextInt(instrumentCount)
-                    )).collect(Collectors.toList());
+                    instrumentNames[ThreadLocalRandom.current().nextInt(instrumentCount)],
+                    currencies[ThreadLocalRandom.current().nextInt(ccyCount)],
+                    UUID.randomUUID().toString()))
+            .collect(Collectors.toList());
   }
 
 
@@ -132,12 +152,16 @@ public class AggregationBenchmarks {
   private static class Trade {
     private final double price;
     private final double qty;
-    private final int instrumentId;
+    private final String instrumentId;
+    private final String ccyId;
+    private final String tradeId;
 
-    private Trade(double price, double qty, int instrumentId) {
+    private Trade(double price, double qty, String instrumentId, String ccyId, String tradeId) {
       this.price = price;
       this.qty = qty;
       this.instrumentId = instrumentId;
+      this.ccyId = ccyId;
+      this.tradeId = tradeId;
     }
 
     public double getPrice() {
@@ -148,8 +172,12 @@ public class AggregationBenchmarks {
       return qty;
     }
 
-    public int getInstrumentId() {
+    public String getInstrumentId() {
       return instrumentId;
+    }
+
+    public String getCcyId() {
+      return ccyId;
     }
   }
 }
