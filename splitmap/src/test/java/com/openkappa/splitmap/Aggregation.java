@@ -75,9 +75,9 @@ public class Aggregation {
     }
 
     SplitMap someFilter1 = filterWriter1.toSplitMap();
-    SplitMap someFilter2 = filterWriter1.toSplitMap();
+    SplitMap someFilter2 = filterWriter2.toSplitMap();
 
-    double sp = Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)), someFilter1, someFilter2)
+    double sp = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), someFilter1, someFilter2)
             .getIndex()
             .streamUniformPartitions()
             .parallel()
@@ -92,8 +92,6 @@ public class Aggregation {
             }).sum();
 
     assertTrue(sp > 0);
-    System.out.println(values1.reduce(0L, arr -> arr.length, (x, y) -> x + y));
-    System.out.println(values2.reduce(0L, arr -> arr.length, (x, y) -> x + y));
 
   }
 
