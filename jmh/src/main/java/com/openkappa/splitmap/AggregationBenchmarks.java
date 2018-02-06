@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -55,7 +57,49 @@ public class AggregationBenchmarks {
               });
               return closure[0];
             }).sum();
+  }
 
+
+  @Benchmark
+  public double productMomentCorrelationCoefficient() {
+    double[] factors = instrumentIndex[instId1]
+            .getIndex()
+            .streamBalancedPartitions()
+            .parallel()
+            .map(partition -> {
+              double[] stats = new double[6];
+              partition.forEach((k, c) -> {
+                double[] q = qty.get(k);
+                double[] p = price.get(k);
+                c.forEach(k, i -> {
+                  int index = i & 0xFFFF;
+                  double sq = q[index];
+                  double sp = p[index];
+                  double spp = sp * sp;
+                  double sqq = sq * sq;
+                  double spq = sp * sq;
+                  stats[0] += sq;
+                  stats[1] += sp;
+                  stats[2] += spp;
+                  stats[3] += sqq;
+                  stats[4] += spq;
+                  stats[5] += 1;
+                });
+              });
+              return stats;
+            }).reduce(new double[6], (x, y) -> {
+              for (int i = 0; i < x.length; ++i) {
+                x[i] += y[i];
+              }
+              return x;
+            });
+    double sq = factors[0];
+    double sp = factors[1];
+    double spp = factors[2];
+    double sqq = factors[3];
+    double spq = factors[4];
+    double n = factors[5];
+    return (n * spq - sq * sp) / (Math.sqrt((n * spp - sp * sp) * (n * sqq - sq * sq)));
   }
 
 
