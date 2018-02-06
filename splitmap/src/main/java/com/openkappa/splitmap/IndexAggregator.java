@@ -11,9 +11,7 @@ import java.util.stream.Collector;
 
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
-import static java.util.stream.Collector.Characteristics.CONCURRENT;
-import static java.util.stream.Collector.Characteristics.IDENTITY_FINISH;
-import static java.util.stream.Collector.Characteristics.UNORDERED;
+import static java.util.stream.Collector.Characteristics.*;
 
 class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<T>, PrefixIndex<T>> {
 
@@ -42,7 +40,7 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
           long temp = keyMask;
           while (temp != 0) {
             int j = numberOfTrailingZeros(temp);
-            T reduced = circuit.apply((List<T>)chunkIn[j]);
+            T reduced = circuit.apply((List<T>) chunkIn[j]);
             if (null != reduced) {
               chunkOut[j] = reduced;
             } else {

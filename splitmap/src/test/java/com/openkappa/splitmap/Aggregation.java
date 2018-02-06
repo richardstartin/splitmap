@@ -11,6 +11,47 @@ import static org.testng.Assert.assertTrue;
 
 public class Aggregation {
 
+  public static IntStream rleRegion() {
+    int numRuns = ThreadLocalRandom.current().nextInt(1, 2048);
+    int[] runs = createSorted16BitInts(numRuns * 2);
+    return IntStream.range(0, numRuns)
+            .map(i -> i * 2)
+            .mapToObj(i -> IntStream.range(runs[i], runs[i + 1]))
+            .flatMapToInt(i -> i);
+  }
+
+  public static IntStream sparseRegion() {
+    return IntStream.of(createSorted16BitInts(ThreadLocalRandom.current().nextInt(1, 4096)));
+  }
+
+  public static IntStream denseRegion() {
+    return IntStream.of(createSorted16BitInts(ThreadLocalRandom.current().nextInt(4096, 1 << 16)));
+  }
+
+  private static int[] createSorted16BitInts(int howMany) {
+    long[] bitset = new long[1 << 10];
+    Arrays.fill(bitset, 0L);
+    int consumed = 0;
+    while (consumed < howMany) {
+      int value = ThreadLocalRandom.current().nextInt(1 << 16);
+      long bit = (1L << value);
+      consumed += 1 - Long.bitCount(bitset[value >>> 6] & bit);
+      bitset[value >>> 6] |= bit;
+    }
+    int[] keys = new int[howMany];
+    int prefix = 0;
+    int k = 0;
+    for (int i = bitset.length - 1; i >= 0; --i) {
+      long word = bitset[i];
+      while (word != 0) {
+        keys[k++] = prefix + Long.numberOfTrailingZeros(word);
+        word ^= Long.lowestOneBit(word);
+      }
+      prefix += 64;
+    }
+    return keys;
+  }
+
   @Test
   public void aggregationPOC() {
 
@@ -33,10 +74,11 @@ public class Aggregation {
 
     PrefixIndex<Container> someFilter = filterWriter.toSplitMap().getIndex();
 
-    double sp = someFilter.streamUniformPartitions()
+    double sp = someFilter
+            .streamBalancedPartitions()
             .parallel()
             .mapToDouble(partition -> {
-              double[] closure =  new double[1];
+              double[] closure = new double[1];
               partition.forEach((k, c) -> {
                 double[] l = values1.get(k);
                 double[] r = values2.get(k);
@@ -48,7 +90,6 @@ public class Aggregation {
     assertTrue(sp > 0);
 
   }
-
 
   @Test
   public void aggregationComplexFilterPOC() {
@@ -79,10 +120,10 @@ public class Aggregation {
 
     double sp = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), someFilter1, someFilter2)
             .getIndex()
-            .streamUniformPartitions()
+            .streamBalancedPartitions()
             .parallel()
             .mapToDouble(partition -> {
-              double[] closure =  new double[1];
+              double[] closure = new double[1];
               partition.forEach((k, c) -> {
                 double[] l = values1.get(k);
                 double[] r = values2.get(k);
@@ -95,57 +136,11 @@ public class Aggregation {
 
   }
 
-
-
-
-
   private double[] randomPage() {
     double[] page = new double[1 << 16]; // naive choice of array length
     for (int i = 0; i < page.length; ++i) {
       page[i] = ThreadLocalRandom.current().nextDouble();
     }
     return page;
-  }
-
-  public static IntStream rleRegion() {
-    int numRuns = ThreadLocalRandom.current().nextInt(1, 2048);
-    int[] runs = createSorted16BitInts(numRuns * 2);
-    return IntStream.range(0, numRuns)
-            .map(i -> i * 2)
-            .mapToObj(i -> IntStream.range(runs[i], runs[i + 1]))
-            .flatMapToInt(i -> i);
-  }
-
-  public static IntStream sparseRegion() {
-    return IntStream.of(createSorted16BitInts(ThreadLocalRandom.current().nextInt(1, 4096)));
-  }
-
-
-  public static IntStream denseRegion() {
-    return IntStream.of(createSorted16BitInts(ThreadLocalRandom.current().nextInt(4096, 1 << 16)));
-  }
-
-  private static int[] createSorted16BitInts(int howMany) {
-    long[] bitset = new long[1 << 10];
-    Arrays.fill(bitset, 0L);
-    int consumed = 0;
-    while (consumed < howMany) {
-      int value = ThreadLocalRandom.current().nextInt(1 << 16);
-      long bit = (1L << value);
-      consumed += 1 - Long.bitCount(bitset[value >>> 6] & bit);
-      bitset[value >>> 6] |= bit;
-    }
-    int[] keys = new int[howMany];
-    int prefix = 0;
-    int k = 0;
-    for (int i = bitset.length - 1; i >= 0; --i) {
-      long word = bitset[i];
-      while (word != 0) {
-        keys[k++] = prefix + Long.numberOfTrailingZeros(word);
-        word ^= Long.lowestOneBit(word);
-      }
-      prefix += 64;
-    }
-    return keys;
   }
 }

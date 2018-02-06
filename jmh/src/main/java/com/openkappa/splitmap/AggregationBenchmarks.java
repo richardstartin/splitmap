@@ -44,10 +44,10 @@ public class AggregationBenchmarks {
   public double qtyXPriceForInstrumentIndex() {
     return instrumentIndex[instId1]
             .getIndex()
-            .streamUniformPartitions()
+            .streamBalancedPartitions()
             .parallel()
             .mapToDouble(partition -> {
-              double[] closure =  new double[1];
+              double[] closure = new double[1];
               partition.forEach((k, c) -> {
                 double[] l = qty.get(k);
                 double[] r = price.get(k);
@@ -77,7 +77,7 @@ public class AggregationBenchmarks {
             .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
-              double[] closure =  new double[1];
+              double[] closure = new double[1];
               partition.forEach((k, c) -> {
                 double[] l = qty.get(k);
                 double[] r = price.get(k);
@@ -93,7 +93,7 @@ public class AggregationBenchmarks {
     return trades.parallelStream()
             .filter(trade ->
                     ((trade.instrumentId.equals(instrumentNames[instId1]) && !trade.ccyId.equals(currencies[ccyId]))
-                    || (!trade.instrumentId.equals(instrumentNames[instId1]) && trade.ccyId.equals(currencies[ccyId]))))
+                            || (!trade.instrumentId.equals(instrumentNames[instId1]) && trade.ccyId.equals(currencies[ccyId]))))
             .mapToDouble(trade -> trade.qty * trade.price)
             .sum();
   }
@@ -113,8 +113,8 @@ public class AggregationBenchmarks {
     int index = 0;
     for (Trade trade : trades) {
       if (index != 0 && (index % 65536) == 0) {
-        qty.insert((short)((index >>> 16) - 1), Arrays.copyOf(qtyPage, qtyPage.length));
-        price.insert((short)((index >>> 16) - 1), Arrays.copyOf(pricePage, pricePage.length));
+        qty.insert((short) ((index >>> 16) - 1), Arrays.copyOf(qtyPage, qtyPage.length));
+        price.insert((short) ((index >>> 16) - 1), Arrays.copyOf(pricePage, pricePage.length));
       }
       instrumentWriters[Arrays.binarySearch(instrumentNames, trade.instrumentId)].add(index);
       ccyWriters[Arrays.binarySearch(currencies, trade.ccyId)].add(index);
@@ -122,8 +122,8 @@ public class AggregationBenchmarks {
       pricePage[index & 0xFFFF] = trade.price;
       ++index;
     }
-    qty.insert((short)(index >>> 16), Arrays.copyOf(qtyPage, qtyPage.length));
-    price.insert((short)(index >>> 16), Arrays.copyOf(pricePage, pricePage.length));
+    qty.insert((short) (index >>> 16), Arrays.copyOf(qtyPage, qtyPage.length));
+    price.insert((short) (index >>> 16), Arrays.copyOf(pricePage, pricePage.length));
     instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);
     ccyIndex = Arrays.stream(ccyWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);
   }
@@ -145,8 +145,6 @@ public class AggregationBenchmarks {
                     UUID.randomUUID().toString()))
             .collect(Collectors.toList());
   }
-
-
 
 
   private static class Trade {

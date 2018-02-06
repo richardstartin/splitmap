@@ -9,12 +9,14 @@ import static java.lang.Long.numberOfTrailingZeros;
 
 public class PrefixIndex<T> {
 
-  private static final int PARTITIONS;
+  static final int PARTITIONS;
+  static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
+
   static {
     PARTITIONS = Runtime.getRuntime().availableProcessors();
   }
-  private static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
+  private final long[] keyDistribution = new long[64];
   private final long[] keys;
   private final ChunkedArray<T> values;
   private final int offset;
@@ -58,7 +60,35 @@ public class PrefixIndex<T> {
   public void insert(short key, T value) {
     int pos = key & 0xFFFF;
     keys[pos >>> 6] |= (1L << pos);
+    keyDistribution[pos >>> 12] |= (1L << (pos >>> 6));
     values.put(pos, value);
+  }
+
+  public Stream<PrefixIndex<T>> streamBalancedPartitions() {
+    int weight = 0;
+    for (int i = 0; i < keyDistribution.length; ++i) {
+      weight += Long.bitCount(keyDistribution[i]);
+    }
+    int weightPerPartition = weight / PARTITIONS;
+    Stream.Builder<PrefixIndex<T>> builder = Stream.builder();
+    int offset = 0;
+    int range = 0;
+    for (int i = 0; i < keyDistribution.length && offset < weight; ++i) {
+      int newRange = range + Long.bitCount(keyDistribution[i]);
+      if (newRange >= weightPerPartition) {
+        builder.add(new PrefixIndex<>(keys, values, offset, newRange));
+        offset += newRange;
+        range = 0;
+      } else {
+        range = newRange;
+      }
+    }
+    if (offset < weight) {
+      builder.add(new PrefixIndex<>(keys, values, offset, keys.length - offset));
+      offset = weight;
+    }
+    assert offset == weight;
+    return builder.build();
   }
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
@@ -75,7 +105,7 @@ public class PrefixIndex<T> {
         if (null != chunk) {
           while (mask != 0) {
             int j = numberOfTrailingZeros(mask);
-            consumer.accept((short)(prefix + j), chunk[j]);
+            consumer.accept((short) (prefix + j), chunk[j]);
             mask ^= lowestOneBit(mask);
           }
         }
@@ -138,6 +168,7 @@ public class PrefixIndex<T> {
   public void writeChunk(int wordIndex, long word, T[] chunk) {
     keys[wordIndex] = word;
     if (word != 0 && null != chunk) {
+      keyDistribution[wordIndex >>> 6] |= (1L << wordIndex);
       values.writeChunk(wordIndex, chunk);
     }
   }

@@ -6,11 +6,12 @@ import org.roaringbitmap.Container;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.IntStream;
 
+import static com.openkappa.splitmap.PrefixIndex.PARTITIONS;
+import static com.openkappa.splitmap.PrefixIndex.PARTITION_SIZE;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collectors.toList;
@@ -23,7 +24,7 @@ public class Circuits {
   public static SplitMap evaluateIfKeysIntersect(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     return new SplitMap(groupByIntersectingKeys(EMPTY, indices)
-            .streamUniformPartitions()
+            .streamBalancedPartitions()
             .parallel()
             .collect(new IndexAggregator<>(circuit)));
   }
@@ -32,12 +33,12 @@ public class Circuits {
   public static SplitMap evaluate(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     return new SplitMap(groupByKey(EMPTY, indices)
-            .streamUniformPartitions()
+            .streamBalancedPartitions()
             .parallel()
             .collect(new IndexAggregator<>(circuit)));
   }
 
-  static <T> PrefixIndex<List<T>> groupByKey(T defaultValue,  PrefixIndex<T>... indices) {
+  static <T> PrefixIndex<List<T>> groupByKey(T defaultValue, PrefixIndex<T>... indices) {
     return groupByKey((x, y) -> x | y, 0L, defaultValue, indices);
   }
 
@@ -46,17 +47,15 @@ public class Circuits {
   }
 
   private static <T> PrefixIndex<List<T>> groupByKey(LongBinaryOperator op,
-                                                        long identity,
-                                                        T defaultValue,
-                                                        PrefixIndex<T>... indices) {
+                                                     long identity,
+                                                     T defaultValue,
+                                                     PrefixIndex<T>... indices) {
     PrefixIndex<List<T>> grouped = new PrefixIndex<>(TEMPORARY_KEYS.get());
     List<T> prototype = IntStream.range(0, indices.length).mapToObj(i -> defaultValue).collect(toList());
-    int partitions = Runtime.getRuntime().availableProcessors();
-    int partitionSize = (1 << 10) / partitions;
-    IntStream.range(0, partitions)
+    IntStream.range(0, PARTITIONS)
             .parallel()
             .forEach(p -> {
-              for (int i = partitionSize * p; i < partitionSize * (p + 1); ++i) {
+              for (int i = PARTITION_SIZE * p; i < PARTITION_SIZE * (p + 1); ++i) {
                 long word = identity;
                 for (PrefixIndex<T> index : indices) {
                   word = index.computeKeyWord(i, word, op);

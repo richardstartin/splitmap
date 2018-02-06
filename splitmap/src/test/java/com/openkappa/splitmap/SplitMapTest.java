@@ -2,8 +2,6 @@ package com.openkappa.splitmap;
 
 import org.testng.annotations.Test;
 
-import java.util.concurrent.ThreadLocalRandom;
-
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
