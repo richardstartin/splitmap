@@ -15,7 +15,7 @@ public class PageWriter {
   private boolean dirty;
 
   public PageWriter() {
-    this(IntUnaryOperator.identity());
+    this(Hashing::scatter);
   }
 
   public PageWriter(IntUnaryOperator hash) {

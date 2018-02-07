@@ -62,10 +62,8 @@ public class AggregationBenchmarks {
   @Benchmark
   public double productMomentCorrelationCoefficient() {
     double[] factors =
-            Circuits.evaluate(slice -> {
-                Container result = slice.get(0).and(slice.get(1));
-                return result.getCardinality() == 0 ? null : result;
-            }, instrumentIndex[instId1], ccyIndex[ccyId])
+            Circuits.evaluate(slice -> slice.get(0).lazyOR(slice.get(1)),
+                    instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
             .streamUniformPartitions()
             .parallel()
@@ -74,7 +72,6 @@ public class AggregationBenchmarks {
               partition.forEach((k, c) -> {
                 double[] q = qty.get(k);
                 double[] p = price.get(k);
-                //Container c = slice.get(0).xor(slice.get(1));
                 c.forEach((short)0, i -> {
                   double sq = q[i];
                   double sp = p[i];
