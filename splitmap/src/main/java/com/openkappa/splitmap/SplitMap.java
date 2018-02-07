@@ -2,16 +2,28 @@ package com.openkappa.splitmap;
 
 import org.roaringbitmap.Container;
 
+import java.util.function.IntUnaryOperator;
+
 public class SplitMap {
 
   private final PrefixIndex<Container> index;
+  private final IntUnaryOperator hash;
+
+  public SplitMap(PrefixIndex<Container> index, IntUnaryOperator hash) {
+    this.index = index;
+    this.hash = hash;
+  }
 
   public SplitMap(PrefixIndex<Container> index) {
-    this.index = index;
+    this (index, IntUnaryOperator.identity());
+  }
+
+  public SplitMap(IntUnaryOperator hash) {
+    this(new PrefixIndex<>(), hash);
   }
 
   public SplitMap() {
-    this(new PrefixIndex<>());
+    this(new PrefixIndex<>(), IntUnaryOperator.identity());
   }
 
   public void insert(short key, Container region) {
@@ -19,7 +31,7 @@ public class SplitMap {
   }
 
   public boolean contains(int value) {
-    Container container = index.get((short) (value >>> 16));
+    Container container = index.get((short) hash.applyAsInt(value >>> 16));
     return null != container && container.contains((short) value);
   }
 

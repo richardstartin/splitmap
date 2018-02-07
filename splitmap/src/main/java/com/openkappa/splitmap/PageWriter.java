@@ -4,7 +4,6 @@ import org.roaringbitmap.BitmapContainer;
 import org.roaringbitmap.Container;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.function.IntUnaryOperator;
 
 public class PageWriter {
@@ -20,7 +19,7 @@ public class PageWriter {
   }
 
   public PageWriter(IntUnaryOperator hash) {
-    this.splitMap = new SplitMap();
+    this.splitMap = new SplitMap(hash);
     this.hash = hash;
   }
 
@@ -41,7 +40,8 @@ public class PageWriter {
   public void flush() {
     if (dirty) {
       Container container = new BitmapContainer(bitmap, -1).repairAfterLazy();
-      splitMap.insert((short)hash.applyAsInt(currentKey >>> 16), container instanceof BitmapContainer ? container.clone() : container);
+      splitMap.insert((short)hash.applyAsInt(currentKey >>> 16),
+                      container instanceof BitmapContainer ? container.clone() : container);
       clear();
     }
   }

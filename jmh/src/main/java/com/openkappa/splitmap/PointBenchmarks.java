@@ -52,4 +52,27 @@ public class PointBenchmarks {
   public long getCardinalitySplitmap() {
     return splitMap.getCardinality();
   }
+
+
+  @Benchmark
+  public boolean containsRoaring() {
+    return bitmap.contains(goodValue);
+  }
+
+
+  @Benchmark
+  public boolean containsSplitmap() {
+    return splitMap.contains(goodValue);
+  }
+
+  @Benchmark
+  public boolean containsMissingRoaring() {
+    return bitmap.contains(badValue);
+  }
+
+
+  @Benchmark
+  public boolean containsMissingSplitmap() {
+    return splitMap.contains(badValue);
+  }
 }
