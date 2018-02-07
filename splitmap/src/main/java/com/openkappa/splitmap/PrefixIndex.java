@@ -54,7 +54,7 @@ public class PrefixIndex<T> {
 
   public T get(short key) {
     int pos = key & 0xFFFF;
-    if ((keys[pos >>> 6] & (1 << pos)) != 0) {
+    if ((keys[pos >>> 6] & (1L << pos)) != 0) {
       return values.get(pos);
     }
     return null;

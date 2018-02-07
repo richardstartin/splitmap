@@ -60,20 +60,19 @@ public class AggregationBenchmarks {
 
   @Benchmark
   public double productMomentCorrelationCoefficient() {
-    double[] factors = Circuits.evaluate(slice -> slice.get(0).and(slice.get(1)),
+    double[] factors = Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)),
             instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .map(partition -> {
               double[] stats = new double[6];
               partition.forEach((k, c) -> {
                 double[] q = qty.get(k);
                 double[] p = price.get(k);
-                c.forEach(k, i -> {
-                  int index = i & 0xFFFF;
-                  double sq = q[index];
-                  double sp = p[index];
+                c.forEach((short)0, i -> {
+                  double sq = q[i];
+                  double sp = p[i];
                   double spp = sp * sp;
                   double sqq = sq * sq;
                   double spq = sp * sq;
@@ -116,14 +115,14 @@ public class AggregationBenchmarks {
     return Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
             instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
               partition.forEach((k, c) -> {
                 double[] l = qty.get(k);
                 double[] r = price.get(k);
-                c.forEach(k, i -> closure[0] += l[i & 0xFFFF] * r[i & 0xFFFF]);
+                c.forEach((short)0, i -> closure[0] += l[i] * r[i]);
               });
               return closure[0];
             }).sum();
@@ -152,23 +151,31 @@ public class AggregationBenchmarks {
     double[] pricePage = new double[1 << 16];
     qty = new PrefixIndex<>();
     price = new PrefixIndex<>();
-    short key = 0;
     short index = 0;
+    int x = 0;
+    long[] used = new long[1024];
+    used[0] |= 1;
     for (Trade trade : trades) {
-      int instrumentIndex = trade.instrumentId;
-      int ccyIndex = Arrays.binarySearch(currencies, trade.ccyId);
-      if (index > 0 && key == 0) {
+      if (index == -1) {
+        short key = (short)(x >>> 16);
         qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
         price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
-        key = (short)(ThreadLocalRandom.current().nextInt(1, 1 << 16));
+        do {
+          key = (short) ThreadLocalRandom.current().nextInt(1, 1 << 16);
+        } while ((used[(key & 0xFFFF) >>> 6] & (1L << (key & 0xFFFF))) != 0);
+        used[(key & 0xFFFF) >>> 6] |= (1L << (key & 0xFFFF));
         index = 0;
       }
-      instrumentWriters[instrumentIndex].add(((key & 0xFFFF) << 16) | index);
-      ccyWriters[ccyIndex].add(index);
+      int instrumentIndex = trade.instrumentId;
+      int ccyIndex = Arrays.binarySearch(currencies, trade.ccyId);
+      instrumentWriters[instrumentIndex].add(x);
+      ccyWriters[ccyIndex].add(x);
       qtyPage[index & 0xFFFF] = trade.qty;
       pricePage[index & 0xFFFF] = trade.price;
       ++index;
+      ++x;
     }
+    short key = (short)(x >>> 16);
     qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
     price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
     instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);
