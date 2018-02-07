@@ -16,7 +16,6 @@ public class PrefixIndex<T> {
   }
   static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
-  private final long[] dirtyWords = new long[64];
   private final long[] keys;
   private final ChunkedArray<T> values;
   private final int offset;
@@ -140,7 +139,6 @@ public class PrefixIndex<T> {
   public void writeChunk(int wordIndex, long word, T[] chunk) {
     keys[wordIndex] = word;
     if (word != 0 && null != chunk) {
-      dirtyWords[wordIndex >>> 6] |= (1L << wordIndex);
       values.writeChunk(wordIndex, chunk);
     }
   }
