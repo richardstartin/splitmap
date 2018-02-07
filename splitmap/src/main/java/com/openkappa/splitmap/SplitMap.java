@@ -22,10 +22,6 @@ public class SplitMap {
     this(new PrefixIndex<>(), hash);
   }
 
-  public SplitMap() {
-    this(new PrefixIndex<>(), IntUnaryOperator.identity());
-  }
-
   public void insert(short key, Container region) {
     index.insert(key, region);
   }

@@ -143,6 +143,13 @@ public class PrefixIndex<T> {
     }
   }
 
+  public void transferChunk(int wordIndex, long word, T[] chunk) {
+    keys[wordIndex] = word;
+    if (word != 0 && null != chunk) {
+      values.transferChunk(wordIndex, chunk);
+    }
+  }
+
   public long computeKeyWord(int wordIndex, long value, LongBinaryOperator op) {
     return op.applyAsLong(keys[wordIndex], value);
   }

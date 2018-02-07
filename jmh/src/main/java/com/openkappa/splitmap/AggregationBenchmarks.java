@@ -1,6 +1,7 @@
 package com.openkappa.splitmap;
 
 import org.openjdk.jmh.annotations.*;
+import org.roaringbitmap.Container;
 
 import java.util.Arrays;
 import java.util.List;
@@ -60,8 +61,11 @@ public class AggregationBenchmarks {
 
   @Benchmark
   public double productMomentCorrelationCoefficient() {
-    double[] factors = Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)),
-            instrumentIndex[instId1], ccyIndex[ccyId])
+    double[] factors =
+            Circuits.evaluate(slice -> {
+                Container result = slice.get(0).and(slice.get(1));
+                return result.getCardinality() == 0 ? null : result;
+            }, instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
             .streamUniformPartitions()
             .parallel()
@@ -70,6 +74,7 @@ public class AggregationBenchmarks {
               partition.forEach((k, c) -> {
                 double[] q = qty.get(k);
                 double[] p = price.get(k);
+                //Container c = slice.get(0).xor(slice.get(1));
                 c.forEach((short)0, i -> {
                   double sq = q[i];
                   double sp = p[i];
@@ -142,10 +147,10 @@ public class AggregationBenchmarks {
 
   private void indexTrades() {
     PageWriter[] instrumentWriters = IntStream.range(0, instrumentCount)
-            .mapToObj(i -> new PageWriter(Hashing::permute))
+            .mapToObj(i -> new PageWriter(Hashing::scatter))
             .toArray(PageWriter[]::new);
     PageWriter[] ccyWriters = IntStream.range(0, ccyCount)
-            .mapToObj(i -> new PageWriter(Hashing::permute))
+            .mapToObj(i -> new PageWriter(Hashing::scatter))
             .toArray(PageWriter[]::new);
     double[] qtyPage = new double[1 << 16];
     double[] pricePage = new double[1 << 16];
@@ -156,7 +161,7 @@ public class AggregationBenchmarks {
     int x = 0;
     for (Trade trade : trades) {
       if (index == -1) {
-        short key = (short)Hashing.permute((short)(x >>> 16));
+        short key = (short)Hashing.scatter((short)(x >>> 16));
         qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
         price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
       }
@@ -169,7 +174,7 @@ public class AggregationBenchmarks {
       ++index;
       ++x;
     }
-    short key = (short)Hashing.permute((short)(x >>> 16));
+    short key = (short)Hashing.scatter((short)(x >>> 16));
     qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
     price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
     instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);

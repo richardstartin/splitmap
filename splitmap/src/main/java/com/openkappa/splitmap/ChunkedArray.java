@@ -24,6 +24,7 @@ public class ChunkedArray<T> {
   }
 
   public boolean readChunk(int chunkIndex, T[] output) {
+    Objects.checkIndex(chunkIndex, chunks.length);
     if (null != chunks[chunkIndex]) {
       System.arraycopy(chunks[chunkIndex], 0, output, 0, Long.SIZE);
       return true;
@@ -38,17 +39,24 @@ public class ChunkedArray<T> {
   }
 
   public Stream<T> streamChunk(int chunkIndex) {
+    Objects.checkIndex(chunkIndex, chunks.length);
     return null == chunks[chunkIndex]
             ? Stream.empty()
             : Stream.of(chunks[chunkIndex]).filter(Objects::nonNull);
   }
 
   public void writeChunk(int chunkIndex, T[] input) {
+    Objects.checkIndex(chunkIndex, chunks.length);
     if (null != chunks[chunkIndex]) {
       System.arraycopy(input, 0, chunks[chunkIndex], 0, Long.SIZE);
     } else {
       chunks[chunkIndex] = Arrays.copyOf(input, Long.SIZE);
     }
+  }
+
+  void transferChunk(int chunkIndex, T[] input) {
+    Objects.checkIndex(chunkIndex, chunks.length);
+    chunks[chunkIndex] = input;
   }
 
 }

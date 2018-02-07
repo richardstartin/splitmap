@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.openkappa.splitmap.PrefixIndex.PARTITIONS;
 import static com.openkappa.splitmap.PrefixIndex.PARTITION_SIZE;
@@ -60,7 +61,7 @@ public class Circuits {
                 for (PrefixIndex<T> index : indices) {
                   word = index.computeKeyWord(i, word, op);
                 }
-                grouped.writeChunk(i, word, null);
+                grouped.transferChunk(i, word, null);
                 if (word != 0) {
                   List<T>[] chunk = new List[Long.SIZE];
                   int k = 0;
@@ -82,7 +83,7 @@ public class Circuits {
                     }
                     ++k;
                   }
-                  grouped.writeChunk(i, word, chunk);
+                  grouped.transferChunk(i, word, chunk);
                 }
               }
             });

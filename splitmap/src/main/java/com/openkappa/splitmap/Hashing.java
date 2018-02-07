@@ -4,6 +4,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Hashing {
 
+  public static int scatter(int value) {
+    return Integer.reverse(value) >>> 16;
+  }
+
   public static int permute(int value) {
     return SCATTER[value & 0xFFFF];
   }
