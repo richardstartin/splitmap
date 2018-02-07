@@ -24,7 +24,7 @@ public class SplitMap {
   }
 
   public long getCardinality() {
-    return index.streamBalancedPartitions()
+    return index.streamUniformPartitions()
       .mapToInt(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
       .sum();
   }

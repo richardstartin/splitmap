@@ -34,10 +34,10 @@ public class AggregationBenchmarks {
 
   @Setup(Level.Trial)
   public void setup() {
-    generateRandomTrades();
-    indexTrades();
     instId1 = ThreadLocalRandom.current().nextInt(instrumentCount);
     ccyId = ThreadLocalRandom.current().nextInt(ccyCount);
+    generateRandomTrades();
+    indexTrades();
   }
 
   @Benchmark
@@ -115,7 +115,7 @@ public class AggregationBenchmarks {
     return Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
             instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
-            .streamUniformPartitions()
+            .streamBalancedPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
@@ -142,29 +142,23 @@ public class AggregationBenchmarks {
 
   private void indexTrades() {
     PageWriter[] instrumentWriters = IntStream.range(0, instrumentCount)
-            .mapToObj(i -> new PageWriter())
+            .mapToObj(i -> new PageWriter(Hashing::jenkins))
             .toArray(PageWriter[]::new);
     PageWriter[] ccyWriters = IntStream.range(0, ccyCount)
-            .mapToObj(i -> new PageWriter())
+            .mapToObj(i -> new PageWriter(Hashing::jenkins))
             .toArray(PageWriter[]::new);
     double[] qtyPage = new double[1 << 16];
     double[] pricePage = new double[1 << 16];
+
     qty = new PrefixIndex<>();
     price = new PrefixIndex<>();
     short index = 0;
     int x = 0;
-    long[] used = new long[1024];
-    used[0] |= 1;
     for (Trade trade : trades) {
       if (index == -1) {
-        short key = (short)(x >>> 16);
+        short key = (short)Hashing.jenkins((short)(x >>> 16));
         qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
         price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
-        do {
-          key = (short) ThreadLocalRandom.current().nextInt(1, 1 << 16);
-        } while ((used[(key & 0xFFFF) >>> 6] & (1L << (key & 0xFFFF))) != 0);
-        used[(key & 0xFFFF) >>> 6] |= (1L << (key & 0xFFFF));
-        index = 0;
       }
       int instrumentIndex = trade.instrumentId;
       int ccyIndex = Arrays.binarySearch(currencies, trade.ccyId);
@@ -175,7 +169,7 @@ public class AggregationBenchmarks {
       ++index;
       ++x;
     }
-    short key = (short)(x >>> 16);
+    short key = (short)Hashing.jenkins((short)(x >>> 16));
     qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
     price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
     instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);

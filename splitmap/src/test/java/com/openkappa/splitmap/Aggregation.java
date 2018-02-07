@@ -75,7 +75,7 @@ public class Aggregation {
     PrefixIndex<Container> someFilter = filterWriter.toSplitMap().getIndex();
 
     double sp = someFilter
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
@@ -120,7 +120,7 @@ public class Aggregation {
 
     double sp = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), someFilter1, someFilter2)
             .getIndex()
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
