@@ -1,8 +1,11 @@
 package com.openkappa.splitmap;
 
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
@@ -70,13 +73,13 @@ public class PrefixIndex<T> {
       weight += Long.bitCount(dirtyWords[i]);
     }
     int weightPerPartition = weight / PARTITIONS;
-    Stream.Builder<PrefixIndex<T>> builder = Stream.builder();
+    List<PrefixIndex<T>> indices = new ArrayList<>(PARTITIONS);
     int offset = 0;
     int range = 0;
     for (int i = 0; i < dirtyWords.length && offset < weight; ++i) {
       int newRange = range + Long.bitCount(dirtyWords[i]);
       if (newRange >= weightPerPartition) {
-        builder.add(new PrefixIndex<>(keys, values, offset, newRange));
+        indices.add(new PrefixIndex<>(keys, values, offset, newRange));
         offset += newRange;
         range = 0;
       } else {
@@ -84,11 +87,11 @@ public class PrefixIndex<T> {
       }
     }
     if (offset < weight) {
-      builder.add(new PrefixIndex<>(keys, values, offset, keys.length - offset));
+      indices.add(new PrefixIndex<>(keys, values, offset, keys.length - offset));
       offset = weight;
     }
     assert offset == weight;
-    return builder.build();
+    return indices.stream();
   }
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {

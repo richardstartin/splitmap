@@ -21,9 +21,6 @@ public class PageWriter {
     short key = (short) (i >>> 16);
     int value = i & 0xFFFF;
     if (key != currentKey) {
-      if (Short.compareUnsigned(currentKey, key) > 0) {
-        throw new IllegalStateException("Write keys in ascending order");
-      }
       flush();
       currentKey = key;
     }
