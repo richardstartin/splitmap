@@ -1,16 +1,27 @@
 package com.openkappa.splitmap;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Hashing {
 
-  public static int jenkins(int value) {
-    int hashed = value;
-    hashed = (hashed + 0x7ed55d16) + (hashed << 12);
-    hashed = (hashed ^ 0xc761c23c) ^ (hashed >> 19);
-    hashed = (hashed + 0x165667b1) + (hashed << 5);
-    hashed = (hashed + 0xd3a2646c) ^ (hashed << 9);
-    hashed = (hashed + 0xfd7046c5) + (hashed << 3);
-    hashed = (hashed ^ 0xb55a4f09) ^ (hashed >> 16);
-    return hashed;
+  public static int permute(int value) {
+    return SCATTER[value & 0xFFFF];
+  }
+
+  private static short[] SCATTER = new short[1 << 16];
+  static {
+    long[] bits = new long[1 << 10];
+    int count = 0;
+    int index = 0;
+    while (count < (1 << 16)) {
+      int value = ThreadLocalRandom.current().nextInt(1 << 16);
+      long bit = (1L << value);
+      if ((bits[value >>> 6] & bit) == 0) {
+        SCATTER[index++] = (short)value;
+        ++count;
+        bits[value >>> 6] |= bit;
+      }
+    }
   }
 
 }

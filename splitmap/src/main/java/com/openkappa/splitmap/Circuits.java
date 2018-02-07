@@ -24,7 +24,7 @@ public class Circuits {
   public static SplitMap evaluateIfKeysIntersect(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     return new SplitMap(groupByIntersectingKeys(EMPTY, indices)
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .collect(new IndexAggregator<>(circuit)));
   }
@@ -33,7 +33,7 @@ public class Circuits {
   public static SplitMap evaluate(Function<List<Container>, Container> circuit, SplitMap... splitMaps) {
     PrefixIndex<Container>[] indices = Arrays.stream(splitMaps).map(SplitMap::getIndex).toArray(PrefixIndex[]::new);
     return new SplitMap(groupByKey(EMPTY, indices)
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .collect(new IndexAggregator<>(circuit)));
   }

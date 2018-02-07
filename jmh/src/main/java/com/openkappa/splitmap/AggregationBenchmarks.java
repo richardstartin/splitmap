@@ -44,7 +44,7 @@ public class AggregationBenchmarks {
   public double qtyXPriceForInstrumentIndex() {
     return instrumentIndex[instId1]
             .getIndex()
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
@@ -115,7 +115,7 @@ public class AggregationBenchmarks {
     return Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
             instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
-            .streamBalancedPartitions()
+            .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
@@ -142,10 +142,10 @@ public class AggregationBenchmarks {
 
   private void indexTrades() {
     PageWriter[] instrumentWriters = IntStream.range(0, instrumentCount)
-            .mapToObj(i -> new PageWriter(Hashing::jenkins))
+            .mapToObj(i -> new PageWriter(Hashing::permute))
             .toArray(PageWriter[]::new);
     PageWriter[] ccyWriters = IntStream.range(0, ccyCount)
-            .mapToObj(i -> new PageWriter(Hashing::jenkins))
+            .mapToObj(i -> new PageWriter(Hashing::permute))
             .toArray(PageWriter[]::new);
     double[] qtyPage = new double[1 << 16];
     double[] pricePage = new double[1 << 16];
@@ -156,7 +156,7 @@ public class AggregationBenchmarks {
     int x = 0;
     for (Trade trade : trades) {
       if (index == -1) {
-        short key = (short)Hashing.jenkins((short)(x >>> 16));
+        short key = (short)Hashing.permute((short)(x >>> 16));
         qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
         price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
       }
@@ -169,7 +169,7 @@ public class AggregationBenchmarks {
       ++index;
       ++x;
     }
-    short key = (short)Hashing.jenkins((short)(x >>> 16));
+    short key = (short)Hashing.permute((short)(x >>> 16));
     qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
     price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
     instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);

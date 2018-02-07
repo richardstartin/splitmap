@@ -12,7 +12,7 @@ public class PageWriter {
   private final IntUnaryOperator hash;
   private final long[] bitmap = new long[1 << 10];
   private final SplitMap splitMap;
-  private short currentKey;
+  private int currentKey = -1;
   private boolean dirty;
 
   public PageWriter() {
@@ -25,10 +25,10 @@ public class PageWriter {
   }
 
   public void add(int i) {
-    short key = (short) (i >>> 16);
+    int key = i & 0xFFFF0000;
     int value = i & 0xFFFF;
     if (key != currentKey) {
-      if (Short.compareUnsigned(key, currentKey) < 0) {
+      if (key < currentKey) {
         throw new IllegalStateException("append only");
       }
       flush();
@@ -41,7 +41,7 @@ public class PageWriter {
   public void flush() {
     if (dirty) {
       Container container = new BitmapContainer(bitmap, -1).repairAfterLazy();
-      splitMap.insert((short)hash.applyAsInt(currentKey), container instanceof BitmapContainer ? container.clone() : container);
+      splitMap.insert((short)hash.applyAsInt(currentKey >>> 16), container instanceof BitmapContainer ? container.clone() : container);
       clear();
     }
   }

@@ -1,11 +1,8 @@
 package com.openkappa.splitmap;
 
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
@@ -63,35 +60,7 @@ public class PrefixIndex<T> {
   public void insert(short key, T value) {
     int pos = key & 0xFFFF;
     keys[pos >>> 6] |= (1L << pos);
-    dirtyWords[pos >>> 12] |= (1L << (pos >>> 6));
     values.put(pos, value);
-  }
-
-  public Stream<PrefixIndex<T>> streamBalancedPartitions() {
-    int weight = 0;
-    for (int i = 0; i < dirtyWords.length; ++i) {
-      weight += Long.bitCount(dirtyWords[i]);
-    }
-    int weightPerPartition = weight / PARTITIONS;
-    List<PrefixIndex<T>> indices = new ArrayList<>(PARTITIONS);
-    int offset = 0;
-    int range = 0;
-    for (int i = 0; i < dirtyWords.length && offset < weight; ++i) {
-      int newRange = range + Long.bitCount(dirtyWords[i]);
-      if (newRange >= weightPerPartition) {
-        indices.add(new PrefixIndex<>(keys, values, offset, newRange));
-        offset += newRange;
-        range = 0;
-      } else {
-        range = newRange;
-      }
-    }
-    if (offset < weight) {
-      indices.add(new PrefixIndex<>(keys, values, offset, keys.length - offset));
-      offset = weight;
-    }
-    assert offset == weight;
-    return indices.stream();
   }
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
