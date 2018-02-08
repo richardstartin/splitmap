@@ -10,7 +10,7 @@ public class DataGenerator {
   private static final ThreadLocal<long[]> bits = ThreadLocal.withInitial(() -> new long[1 << 10]);
 
   public static SplitMap randomSplitmap(int maxKeys, double runniness, double dirtiness) {
-    int[] keys = createSorted16BitInts(ThreadLocalRandom.current().nextInt(1, maxKeys));
+    int[] keys = createSorted16BitInts(maxKeys);
     double rleLimit = runniness;
     double denseLimit = runniness + dirtiness;
     PageWriter writer = new PageWriter();
@@ -25,13 +25,13 @@ public class DataGenerator {
               } else {
                 stream = sparseRegion();
               }
-              stream.map(i -> (key << 16) | i).forEach(writer::add);
+              stream.map(i -> (key << 16) | i).filter(i -> i >= 0).forEach(writer::add);
             });
     return writer.toSplitMap();
   }
 
   public static int[] randomArray(int maxKeys, double runniness, double dirtiness) {
-    int[] keys = createSorted16BitInts(ThreadLocalRandom.current().nextInt(1, maxKeys));
+    int[] keys = createSorted16BitInts(maxKeys);
     double rleLimit = runniness;
     double denseLimit = runniness + dirtiness;
     return IntStream.of(keys)
@@ -45,7 +45,7 @@ public class DataGenerator {
               } else {
                 stream = sparseRegion();
               }
-              return stream.map(i -> (key << 16) | i);
+              return stream.map(i -> (key << 16) | i).filter(i -> i >= 0);
             }).toArray();
   }
 

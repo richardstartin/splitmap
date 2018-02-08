@@ -32,6 +32,7 @@ public class AggregationBenchmarks {
   private String[] currencies;
   private int instId1;
   private int ccyId;
+  private double[] test;
 
   @Setup(Level.Trial)
   public void setup() {
@@ -39,7 +40,45 @@ public class AggregationBenchmarks {
     ccyId = ThreadLocalRandom.current().nextInt(ccyCount);
     generateRandomTrades();
     indexTrades();
+    test = new double[tradeCount];
+    for (int i = 0; i < tradeCount; ++i) {
+      test[i] = ThreadLocalRandom.current().nextDouble();
+    }
   }
+
+  @Benchmark
+  public double sanityCheck() {
+    double sum = 0D;
+    for (int i = 0; i < test.length; ++i) {
+      sum += 0.1 * test[i];
+    }
+    return sum + 10;
+  }
+
+
+  @Benchmark
+  public double reduceQty() {
+    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)),
+            instrumentIndex[instId1], ccyIndex[ccyId])
+            .getIndex()
+            .streamUniformPartitions()
+            .parallel()
+            .mapToDouble(partition -> {
+              double[] closure = new double[1];
+              partition.forEach((k, c) -> {
+                double[] vector = qty.get(k);
+                double sum = closure[0];
+                for (int i = 0; i < vector.length; ++i) {
+                  sum += vector[i];
+                }
+                closure[0] = sum;
+              });
+              return closure[0];
+            })
+            .reduce(0D, Math::max)
+            ;
+  }
+
 
   @Benchmark
   public double qtyXPriceForInstrumentIndex() {
@@ -61,8 +100,7 @@ public class AggregationBenchmarks {
 
   @Benchmark
   public double productMomentCorrelationCoefficient() {
-    double[] factors =
-            Circuits.evaluate(slice -> slice.get(0).lazyOR(slice.get(1)),
+    return Circuits.evaluate(slice -> slice.get(0).lazyOR(slice.get(1)),
                     instrumentIndex[instId1], ccyIndex[ccyId])
             .getIndex()
             .streamUniformPartitions()
@@ -87,19 +125,7 @@ public class AggregationBenchmarks {
                 });
               });
               return stats;
-            }).reduce(new double[6], (x, y) -> {
-              for (int i = 0; i < x.length; ++i) {
-                x[i] += y[i];
-              }
-              return x;
-            });
-    double sq = factors[0];
-    double sp = factors[1];
-    double spp = factors[2];
-    double sqq = factors[3];
-    double spq = factors[4];
-    double n = factors[5];
-    return (n * spq - sq * sp) / (Math.sqrt((n * spp - sp * sp) * (n * sqq - sq * sq)));
+            }).collect(Reducers.PMCC);
   }
 
 

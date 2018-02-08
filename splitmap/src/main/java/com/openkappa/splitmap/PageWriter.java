@@ -28,7 +28,7 @@ public class PageWriter {
     int value = i & 0xFFFF;
     if (key != currentKey) {
       if (key < currentKey) {
-        throw new IllegalStateException("append only");
+        throw new IllegalStateException("append only (" + currentKey + " > " + key + ")");
       }
       flush();
       currentKey = key;
