@@ -1,7 +1,6 @@
 package com.openkappa.splitmap;
 
 import com.openkappa.splitmap.models.LinearRegression;
-import com.openkappa.splitmap.models.Reducers;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.Arrays;
@@ -112,7 +111,7 @@ public class ReductionBenchmarks {
             .parallel()
             .map(partition -> {
               ReductionContext<Model2D, LinearRegression, double[]> ctx = LinearRegression.createContext(qty, price);
-              partition.forEach(LinearRegression.createEvaluation(Model2D.class, ctx));
+              partition.forEach(LinearRegression.createEvaluation(ctx));
               return ctx;
             }).collect(LinearRegression.PMCC);
   }
@@ -159,10 +158,10 @@ public class ReductionBenchmarks {
 
   private void indexTrades() {
     PageWriter[] instrumentWriters = IntStream.range(0, instrumentCount)
-            .mapToObj(i -> new PageWriter(Hashing::scatter))
+            .mapToObj(i -> new PageWriter(InvertibleHashing::scatter))
             .toArray(PageWriter[]::new);
     PageWriter[] ccyWriters = IntStream.range(0, ccyCount)
-            .mapToObj(i -> new PageWriter(Hashing::scatter))
+            .mapToObj(i -> new PageWriter(InvertibleHashing::scatter))
             .toArray(PageWriter[]::new);
     double[] qtyPage = new double[1 << 16];
     double[] pricePage = new double[1 << 16];
@@ -173,7 +172,7 @@ public class ReductionBenchmarks {
     int x = 0;
     for (Trade trade : trades) {
       if (index == -1) {
-        short key = (short)Hashing.scatter((short)(x >>> 16));
+        short key = (short) InvertibleHashing.scatter((short)(x >>> 16));
         qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
         price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
       }
@@ -186,7 +185,7 @@ public class ReductionBenchmarks {
       ++index;
       ++x;
     }
-    short key = (short)Hashing.scatter((short)(x >>> 16));
+    short key = (short) InvertibleHashing.scatter((short)(x >>> 16));
     qty.insert(key, Arrays.copyOf(qtyPage, qtyPage.length));
     price.insert(key, Arrays.copyOf(pricePage, pricePage.length));
     instrumentIndex = Arrays.stream(instrumentWriters).map(PageWriter::toSplitMap).toArray(SplitMap[]::new);

@@ -2,6 +2,7 @@ package com.openkappa.splitmap.models;
 
 import com.openkappa.splitmap.KeyValueConsumer;
 import com.openkappa.splitmap.PrefixIndex;
+import com.openkappa.splitmap.Reducers;
 import com.openkappa.splitmap.ReductionContext;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
 import org.roaringbitmap.Container;
@@ -26,11 +27,10 @@ public enum LinearRegression {
   public static final int COUNT = values().length;
 
   public static <Model extends Enum<Model>> KeyValueConsumer<Container> createEvaluation(
-          Class<Model> model, ReductionContext<Model, LinearRegression, double[]> ctx) {
-    Model[] parameters = model.getEnumConstants();
+          ReductionContext<Model, LinearRegression, double[]> ctx) {
     return (key, mask) -> {
-      double[] x = ctx.readChunk(parameters[0], key);
-      double[] y = ctx.readChunk(parameters[1], key);
+      double[] x = ctx.readChunk(0, key);
+      double[] y = ctx.readChunk(1, key);
       mask.forEach((short) 0, i -> {
         double sx = x[i];
         double sy = y[i];
@@ -69,7 +69,6 @@ public enum LinearRegression {
     public BiConsumer<double[], ReductionContext<Model, LinearRegression, double[]>> accumulator() {
         return (l, r) -> Reducers.sumRightIntoLeft(l, r.getReducedValue());
     }
-
 
     @Override
     public BinaryOperator<double[]> combiner() {

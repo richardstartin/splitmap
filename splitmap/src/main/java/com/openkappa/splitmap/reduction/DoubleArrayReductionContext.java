@@ -18,7 +18,12 @@ public class DoubleArrayReductionContext<I extends Enum<I>, O extends Enum<O>> i
 
   @Override
   public <U> U readChunk(I column, short key) {
-    return (U)inputs[column.ordinal()].get(key);
+    return readChunk(column.ordinal(), key);
+  }
+
+  @Override
+  public <U> U readChunk(int column, short key) {
+    return (U)inputs[column].get(key);
   }
 
   @Override

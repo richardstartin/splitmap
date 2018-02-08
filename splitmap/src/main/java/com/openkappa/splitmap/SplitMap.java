@@ -15,7 +15,7 @@ public class SplitMap {
   }
 
   public SplitMap(PrefixIndex<Container> index) {
-    this (index, Hashing::scatter);
+    this (index, InvertibleHashing::scatter);
   }
 
   public SplitMap(IntUnaryOperator hash) {

@@ -1,7 +1,6 @@
 package com.openkappa.splitmap;
 
 import com.openkappa.splitmap.models.LinearRegression;
-import com.openkappa.splitmap.models.Reducers;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -48,7 +47,7 @@ public class Reduction {
     double[] page1 = new double[1 << 16];
     double[] page2 = new double[1 << 16];
 
-    PageWriter filterWriter = new PageWriter(Hashing::scatter);
+    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
 
     int key = 0;
     int multiple = 0;
@@ -58,8 +57,8 @@ public class Reduction {
         page1[i] = values1[i + multiple * 50];
         page2[i] = values2[i + multiple * 50];
       }
-      pi1.insert((short) Hashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
-      pi2.insert((short) Hashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
+      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
+      pi2.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
       ++multiple;
       key += 1 << 16;
     }
@@ -70,7 +69,7 @@ public class Reduction {
             .parallel()
             .map(partition -> {
               ReductionContext<InputModel, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
-              partition.forEach(LinearRegression.createEvaluation(InputModel.class, ctx));
+              partition.forEach(LinearRegression.createEvaluation(ctx));
               return ctx.getReducedValue();
             })
             .reduce(Reducers::sum)
@@ -120,7 +119,7 @@ public class Reduction {
     double[] page1 = new double[1 << 16];
     double[] page2 = new double[1 << 16];
 
-    PageWriter filterWriter = new PageWriter(Hashing::scatter);
+    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
 
     int key = 0;
     int multiple = 0;
@@ -130,8 +129,8 @@ public class Reduction {
         page1[i] = values1[i + multiple * 50];
         page2[i] = values2[i + multiple * 50];
       }
-      pi1.insert((short) Hashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
-      pi2.insert((short) Hashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
+      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
+      pi2.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
       ++multiple;
       key += 1 << 16;
     }
@@ -142,7 +141,7 @@ public class Reduction {
             .parallel()
             .map(partition -> {
               ReductionContext<InputModel, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
-              partition.forEach(LinearRegression.createEvaluation(InputModel.class, ctx));
+              partition.forEach(LinearRegression.createEvaluation(ctx));
               return ctx;
             })
             .collect(PMCC);

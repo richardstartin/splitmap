@@ -50,7 +50,9 @@ public class PrefixIndex<T> {
 
   public T get(short key) {
     int pos = key & 0xFFFF;
-    if ((keys[pos >>> 6] & (1L << pos)) != 0) {
+    int wordIndex = pos >>> 6;
+    assert wordIndex >= offset && wordIndex <= offset + range;
+    if ((keys[wordIndex] & (1L << pos)) != 0) {
       return values.get(pos);
     }
     return null;
@@ -58,12 +60,14 @@ public class PrefixIndex<T> {
 
   public void insert(short key, T value) {
     int pos = key & 0xFFFF;
-    keys[pos >>> 6] |= (1L << pos);
+    int wordIndex = pos >>> 6;
+    assert wordIndex >= offset && wordIndex <= offset + range;
+    keys[wordIndex] |= (1L << pos);
     values.put(pos, value);
   }
 
   public Stream<PrefixIndex<T>> streamUniformPartitions() {
-    return IntStream.range(0, PARTITIONS)
+    return IntStream.range(0, range / PARTITION_SIZE)
             .mapToObj(i -> new PrefixIndex<>(keys, values, PARTITION_SIZE * i, PARTITION_SIZE));
   }
 
@@ -137,6 +141,7 @@ public class PrefixIndex<T> {
   }
 
   public void writeChunk(int wordIndex, long word, T[] chunk) {
+    assert wordIndex >= offset && wordIndex < offset + range;
     keys[wordIndex] = word;
     if (word != 0 && null != chunk) {
       values.writeChunk(wordIndex, chunk);
@@ -144,6 +149,7 @@ public class PrefixIndex<T> {
   }
 
   public void transferChunk(int wordIndex, long word, T[] chunk) {
+    assert wordIndex >= offset && wordIndex < offset + range;
     keys[wordIndex] = word;
     if (word != 0 && null != chunk) {
       values.transferChunk(wordIndex, chunk);
@@ -151,14 +157,17 @@ public class PrefixIndex<T> {
   }
 
   public long computeKeyWord(int wordIndex, long value, LongBinaryOperator op) {
+    assert wordIndex >= offset && wordIndex < offset + range;
     return op.applyAsLong(keys[wordIndex], value);
   }
 
   public long readKeyWord(int wordIndex) {
+    assert wordIndex >= offset && wordIndex < offset + range;
     return keys[wordIndex];
   }
 
   public boolean readChunk(int chunkIndex, T[] ouptut) {
+    assert chunkIndex >= offset && chunkIndex < offset + range;
     return values.readChunk(chunkIndex, ouptut);
   }
 

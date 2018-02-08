@@ -38,13 +38,6 @@ public class ChunkedArray<T> {
     return chunks[chunkIndex];
   }
 
-  public Stream<T> streamChunk(int chunkIndex) {
-    Objects.checkIndex(chunkIndex, chunks.length);
-    return null == chunks[chunkIndex]
-            ? Stream.empty()
-            : Stream.of(chunks[chunkIndex]).filter(Objects::nonNull);
-  }
-
   public void writeChunk(int chunkIndex, T[] input) {
     Objects.checkIndex(chunkIndex, chunks.length);
     if (null != chunks[chunkIndex]) {

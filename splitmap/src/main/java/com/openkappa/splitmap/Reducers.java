@@ -1,4 +1,4 @@
-package com.openkappa.splitmap.models;
+package com.openkappa.splitmap;
 
 public class Reducers {
 

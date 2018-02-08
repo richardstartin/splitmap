@@ -15,7 +15,7 @@ public class PageWriter {
   private boolean dirty;
 
   public PageWriter() {
-    this(Hashing::scatter);
+    this(InvertibleHashing::scatter);
   }
 
   public PageWriter(IntUnaryOperator hash) {

@@ -7,6 +7,7 @@ import java.util.function.IntBinaryOperator;
 public interface ReductionContext<I extends Enum<I>, O,  V> {
 
   <U> U readChunk(I column, short key);
+  <U> U readChunk(int column, short key);
   default void contributeInt(O column, int value, IntBinaryOperator op) {
     throw new IllegalStateException("Not implemented");
   }

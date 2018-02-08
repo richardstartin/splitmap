@@ -22,7 +22,7 @@ public class SplitMapTest {
 
   @Test
   public void testWriteToSplitMapWithPermutationHash() {
-    PageWriter writer = new PageWriter(Hashing::scatter);
+    PageWriter writer = new PageWriter(InvertibleHashing::scatter);
     writer.add(1);
     writer.add(11);
     writer.add(1 << 16 | 1);
