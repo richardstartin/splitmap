@@ -24,7 +24,7 @@ public enum LinearRegression {
   SXY,
   N;
 
-  public static final int COUNT = values().length;
+  public static final int PARAMETER_COUNT = values().length;
 
   public static <Model extends Enum<Model>> KeyValueConsumer<Container> createEvaluation(
           ReductionContext<Model, LinearRegression, double[]> ctx) {
@@ -49,7 +49,7 @@ public enum LinearRegression {
 
   public static <Model extends Enum<Model>>
   ReductionContext<Model, LinearRegression, double[]> createContext(PrefixIndex<double[]> x, PrefixIndex<double[]> y) {
-    return new DoubleArrayReductionContext<>(COUNT, x, y);
+    return new DoubleArrayReductionContext<>(PARAMETER_COUNT, x, y);
   }
 
   public static final Collector<ReductionContext<?, LinearRegression, double[]>, double[], Double> PMCC
@@ -62,7 +62,7 @@ public enum LinearRegression {
 
     @Override
     public Supplier<double[]> supplier() {
-      return () -> new double[COUNT];
+      return () -> new double[PARAMETER_COUNT];
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.openkappa.splitmap;
 
+import com.openkappa.splitmap.models.Average;
 import com.openkappa.splitmap.models.LinearRegression;
+import com.openkappa.splitmap.models.SumProduct;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -8,10 +10,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 
+import static com.openkappa.splitmap.models.Average.AVG;
+import static com.openkappa.splitmap.models.Average.SUM;
 import static com.openkappa.splitmap.models.LinearRegression.*;
 import static org.testng.Assert.assertEquals;
 
-public class Reduction {
+public class ReductionTest {
 
   private enum InputModel {
     X, Y
@@ -146,6 +150,96 @@ public class Reduction {
             })
             .collect(PMCC);
     assertEquals(pmcc, pmccExpected, 1E-5);
+  }
+
+
+  @Test
+  public void average() {
+    double[] values1 = IntStream.range(0, 1000)
+            .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
+            .toArray();
+
+    double avgExpected = Arrays.stream(values1).sum() / 1000D;
+
+
+    PrefixIndex<double[]> pi1 = new PrefixIndex<>();
+    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
+    double[] page1 = new double[1 << 16];
+    int key = 0;
+    int multiple = 0;
+    for (int k = 0; k < 20; ++k) {
+      for (int i = 0; i < 50; ++i) {
+        filterWriter.add(key + i);
+        page1[i] = values1[i + multiple * 50];
+      }
+      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
+      ++multiple;
+      key += 1 << 16;
+    }
+
+    SplitMap filter = filterWriter.toSplitMap();
+    double avg = filter.getIndex()
+            .streamUniformPartitions()
+            .parallel()
+            .map(partition -> {
+              ReductionContext<InputModel, Average, double[]> ctx = Average.createContext(pi1);
+              partition.forEach(Average.createEvaluation(ctx));
+              return ctx;
+            })
+            .collect(AVG);
+
+    assertEquals(avg, avgExpected, 1E-5);
+  }
+
+
+  @Test
+  public void sumProduct() {
+    double[] values1 = IntStream.range(0, 1000)
+            .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
+            .toArray();
+
+    double[] values2 = IntStream.range(0, 1000)
+            .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
+            .toArray();
+    double spExpected = 0D;
+    for (int i = 0; i < 1000; ++i) {
+      spExpected += values1[i] * values2[i];
+    }
+
+
+    PrefixIndex<double[]> pi1 = new PrefixIndex<>();
+    PrefixIndex<double[]> pi2 = new PrefixIndex<>();
+    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
+    double[] page1 = new double[1 << 16];
+    double[] page2 = new double[1 << 16];
+//    Arrays.fill(page1, -1); // wreak havoc if we touch parts not granted by the mask
+//    Arrays.fill(page2, -100); // wreak havoc if we touch parts not granted by the mask
+    int key = 0;
+    int multiple = 0;
+    for (int k = 0; k < 20; ++k) {
+      for (int i = 0; i < 50; ++i) {
+        filterWriter.add(key + i);
+        page1[i] = values1[i + multiple * 50];
+        page2[i] = values2[i + multiple * 50];
+      }
+      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
+      pi2.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
+      ++multiple;
+      key += 1 << 16;
+    }
+
+    SplitMap filter = filterWriter.toSplitMap();
+    double sp = filter.getIndex()
+            .streamUniformPartitions()
+            .parallel()
+            .mapToDouble(partition -> {
+              ReductionContext<InputModel, SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
+              partition.forEach(SumProduct.createEvaluation(ctx));
+              return ctx.getReducedDouble();
+            })
+            .sum();
+
+    assertEquals(sp, spExpected, 1E-5);
   }
 
 }
