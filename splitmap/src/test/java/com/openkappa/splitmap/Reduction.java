@@ -1,15 +1,22 @@
 package com.openkappa.splitmap;
 
+import com.openkappa.splitmap.models.LinearRegression;
+import com.openkappa.splitmap.models.Reducers;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
-import static com.openkappa.splitmap.Reducers.PMCC;
+
+import static com.openkappa.splitmap.models.LinearRegression.*;
 import static org.testng.Assert.assertEquals;
 
-public class Aggregation {
+public class Reduction {
+
+  private enum InputModel {
+    X, Y
+  }
 
 
   @Test
@@ -62,25 +69,9 @@ public class Aggregation {
             .streamUniformPartitions()
             .parallel()
             .map(partition -> {
-              double[] stats = new double[6];
-              partition.forEach((k, c) -> {
-                double[] x = pi1.get(k);
-                double[] y = pi2.get(k);
-                c.forEach((short) 0, i -> {
-                  double sx = x[i];
-                  double sy = y[i];
-                  double sxx = sx * sx;
-                  double syy = sy * sy;
-                  double sxy = sx * sy;
-                  stats[0] += sx;
-                  stats[1] += sy;
-                  stats[2] += sxx;
-                  stats[3] += syy;
-                  stats[4] += sxy;
-                  stats[5] += 1;
-                });
-              });
-              return stats;
+              ReductionContext<InputModel, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
+              partition.forEach(LinearRegression.createEvaluation(InputModel.class, ctx));
+              return ctx.getReducedValue();
             })
             .reduce(Reducers::sum)
             .orElseGet(() -> new double[6]);
@@ -150,25 +141,9 @@ public class Aggregation {
             .streamUniformPartitions()
             .parallel()
             .map(partition -> {
-              double[] stats = new double[6];
-              partition.forEach((k, c) -> {
-                double[] x = pi1.get(k);
-                double[] y = pi2.get(k);
-                c.forEach((short) 0, i -> {
-                  double sx = x[i];
-                  double sy = y[i];
-                  double sxx = sx * sx;
-                  double syy = sy * sy;
-                  double sxy = sx * sy;
-                  stats[0] += sx;
-                  stats[1] += sy;
-                  stats[2] += sxx;
-                  stats[3] += syy;
-                  stats[4] += sxy;
-                  stats[5] += 1;
-                });
-              });
-              return stats;
+              ReductionContext<InputModel, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
+              partition.forEach(LinearRegression.createEvaluation(InputModel.class, ctx));
+              return ctx;
             })
             .collect(PMCC);
     assertEquals(pmcc, pmccExpected, 1E-5);

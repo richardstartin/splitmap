@@ -1,7 +1,8 @@
 package com.openkappa.splitmap;
 
+import com.openkappa.splitmap.models.LinearRegression;
+import com.openkappa.splitmap.models.Reducers;
 import org.openjdk.jmh.annotations.*;
-import org.roaringbitmap.Container;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +14,11 @@ import java.util.stream.IntStream;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-public class AggregationBenchmarks {
+public class ReductionBenchmarks {
+
+  enum Model2D {
+    X, Y
+  }
 
 
   @Param({"1000000", "10000000"})
@@ -106,26 +111,10 @@ public class AggregationBenchmarks {
             .streamUniformPartitions()
             .parallel()
             .map(partition -> {
-              double[] stats = new double[6];
-              partition.forEach((k, c) -> {
-                double[] q = qty.get(k);
-                double[] p = price.get(k);
-                c.forEach((short)0, i -> {
-                  double sq = q[i];
-                  double sp = p[i];
-                  double spp = sp * sp;
-                  double sqq = sq * sq;
-                  double spq = sp * sq;
-                  stats[0] += sq;
-                  stats[1] += sp;
-                  stats[2] += spp;
-                  stats[3] += sqq;
-                  stats[4] += spq;
-                  stats[5] += 1;
-                });
-              });
-              return stats;
-            }).collect(Reducers.PMCC);
+              ReductionContext<Model2D, LinearRegression, double[]> ctx = LinearRegression.createContext(qty, price);
+              partition.forEach(LinearRegression.createEvaluation(Model2D.class, ctx));
+              return ctx;
+            }).collect(LinearRegression.PMCC);
   }
 
 

@@ -61,17 +61,17 @@ public class CircuitBenchmarks {
 
   @Benchmark
   public RoaringBitmap circuit1Roaring() {
-    return ParallelAggregation.evaluate(slice -> {
-              Container difference = new ArrayContainer();
-              Container union = new ArrayContainer();
-              for (Container container : slice) {
-                if (container.getCardinality() != 0) {
-                  difference = difference.ixor(container);
-                  union = union.lazyIOR(container);
-                }
-              }
-              return difference.iand(union);
-            }, bitmaps);
-    //return RoaringBitmap.and(FastAggregation.or(bitmaps), FastAggregation.xor(bitmaps));
+//    return ParallelAggregation.evaluate(slice -> {
+//              Container difference = new ArrayContainer();
+//              Container union = new ArrayContainer();
+//              for (Container container : slice) {
+//                if (container.getCardinality() != 0) {
+//                  difference = difference.ixor(container);
+//                  union = union.lazyIOR(container);
+//                }
+//              }
+//              return difference.iand(union);
+//            }, bitmaps);
+    return RoaringBitmap.and(FastAggregation.or(bitmaps), FastAggregation.xor(bitmaps));
   }
 }
