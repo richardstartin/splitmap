@@ -4,7 +4,7 @@ A parallel bitmap implementation
 This library builds on top of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap) to provide a parallel implementation of boolean circuits (multidimensional filters) and arbitrary aggregations over the filtered sets.
 
 For instance, to compute a sum product on a dataset filtered such that only one of two conditions holds:
-```
+```java
     PrefixIndex<double[]> quantities = ...
     PrefixIndex<double[]> prices = ...
     SplitMap februarySalesIndex = ...
@@ -16,7 +16,7 @@ For instance, to compute a sum product on a dataset filtered such that only one 
             .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
-              ReductionContext<?, SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
+              ReductionContext<SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
               partition.forEach(SumProduct.createEvaluation(ctx));
               return ctx.getReducedDouble();
             })
@@ -27,7 +27,7 @@ Which, over millions of quantities and prices, can be computed in under 1ms on a
 
 It is easy to write arbitrary routines combining filtering, calculation and aggregation. For example statistical calculations evaluated with filter criteria.
 
-```
+```java
   public double productMomentCorrelationCoefficient() {
     // calculate the correlation coefficient between prices observed on different exchanges
     PrefixIndex<double[]> exchange1Prices = ...
@@ -42,7 +42,7 @@ It is easy to write arbitrary routines combining filtering, calculation and aggr
             .parallel() // go parallel
             .map(partition -> { // compute stats factors per partition
               partition.forEach((k, c) -> {
-                ReductionContext<?, LinearRegression, double[]> ctx = 
+                ReductionContext<LinearRegression, double[]> ctx = 
                         LinearRegression.createContext(exchange1Prices, exchange2Prices);
                 partition.forEach(LinearRegression.createEvaluation(ctx));
                 return ctx.getReducedValue();
