@@ -144,7 +144,7 @@ public class ReductionTest {
             .streamUniformPartitions()
             .parallel()
             .map(partition -> {
-              ReductionContext<InputModel, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
+              ReductionContext<?, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
               partition.forEach(LinearRegression.createEvaluation(ctx));
               return ctx;
             })
@@ -182,7 +182,7 @@ public class ReductionTest {
             .streamUniformPartitions()
             .parallel()
             .map(partition -> {
-              ReductionContext<InputModel, Average, double[]> ctx = Average.createContext(pi1);
+              ReductionContext<?, Average, double[]> ctx = Average.createContext(pi1);
               partition.forEach(Average.createEvaluation(ctx));
               return ctx;
             })
@@ -212,8 +212,8 @@ public class ReductionTest {
     PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
     double[] page1 = new double[1 << 16];
     double[] page2 = new double[1 << 16];
-//    Arrays.fill(page1, -1); // wreak havoc if we touch parts not granted by the mask
-//    Arrays.fill(page2, -100); // wreak havoc if we touch parts not granted by the mask
+    Arrays.fill(page1, -1); // wreak havoc if we touch parts not granted by the mask
+    Arrays.fill(page2, -100); // wreak havoc if we touch parts not granted by the mask
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
@@ -233,7 +233,7 @@ public class ReductionTest {
             .streamUniformPartitions()
             .parallel()
             .mapToDouble(partition -> {
-              ReductionContext<InputModel, SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
+              ReductionContext<?, SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
               partition.forEach(SumProduct.createEvaluation(ctx));
               return ctx.getReducedDouble();
             })
