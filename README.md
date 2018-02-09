@@ -1,7 +1,7 @@
 # splitmap
 A parallel bitmap implementation
 
-This library builds on top of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap) to provide a parallel implementation of boolean circuits (multidimensional filters) and arbitrary aggregations over the filtered sets.
+This library builds on top of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap) to provide a parallel implementation of boolean circuits (multidimensional filters) and arbitrary aggregations over filters.
 
 For instance, to compute a sum product on a dataset filtered such that only one of two conditions holds:
 ```java
