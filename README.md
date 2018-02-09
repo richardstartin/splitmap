@@ -32,11 +32,11 @@ It is easy to write arbitrary routines combining filtering, calculation and aggr
     SplitMap instrument1Index = ...
     SplitMap market1Index = ...
     // evaluate product moment correlation coefficient 
-    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)) 
+    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)), market1Index,instrument1Index) 
             .getIndex()
             .streamUniformPartitions()
             .parallel()
-            .map(partition -> partition.reduce(SimpleLinearRegression.<MarketInstrument>reducer(exchange1Prices, exchange2Prices)))
+            .map(partition -> partition.reduce(SimpleLinearRegression.<Exchanges>reducer(exchange1Prices, exchange2Prices)))
             .collect(SimpleLinearRegression.pmcc());
   }
 ```
