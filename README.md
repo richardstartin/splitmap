@@ -10,20 +10,16 @@ For instance, to compute a sum product on a dataset filtered such that only one 
     SplitMap februarySalesIndex = ...
     SplitMap luxuryProductsIndex = ...
 
-    double revenue = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), 
-                                       februarySalesIndex, luxuryProductsIndex)
+    double februaryRevenueFromLuxuryProducts = Circuits.evaluate(slice -> slice.get(0).and(slice.get(1)), 
+                                                                februarySalesIndex, luxuryProductsIndex)
             .getIndex()
             .streamUniformPartitions()
             .parallel()
-            .mapToDouble(partition -> {
-              ReductionContext<SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
-              partition.forEach(SumProduct.createEvaluation(ctx));
-              return ctx.getReducedDouble();
-            })
+            .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, quantities)))
             .sum();
 ```
 
-Which, over millions of quantities and prices, can be computed in under 1ms on a modern processor, where parallel streams may take upwards of 20ms.
+Which, over millions of quantities and prices, can be computed in under 200 microseconds on a modern processor, where parallel streams may take upwards of 20ms.
 
 It is easy to write arbitrary routines combining filtering, calculation and aggregation. For example statistical calculations evaluated with filter criteria.
 
@@ -36,18 +32,11 @@ It is easy to write arbitrary routines combining filtering, calculation and aggr
     SplitMap instrument1Index = ...
     SplitMap market1Index = ...
     // evaluate product moment correlation coefficient 
-    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)) // filter criteria
+    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)) 
             .getIndex()
-            .streamUniformPartitions() // allow parallel splitting
-            .parallel() // go parallel
-            .map(partition -> { // compute stats factors per partition
-              partition.forEach((k, c) -> {
-                ReductionContext<LinearRegression, double[]> ctx = 
-                        LinearRegression.createContext(exchange1Prices, exchange2Prices);
-                partition.forEach(LinearRegression.createEvaluation(ctx));
-                return ctx.getReducedValue();
-              });
-            })
-            .collect(PMCC);
+            .streamUniformPartitions()
+            .parallel()
+            .map(partition -> partition.reduce(SimpleLinearRegression.<MarketInstrument>reducer(exchange1Prices, exchange2Prices)))
+            .collect(SimpleLinearRegression.pmcc());
   }
 ```
