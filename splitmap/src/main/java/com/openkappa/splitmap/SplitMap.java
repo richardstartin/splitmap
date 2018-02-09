@@ -3,6 +3,7 @@ package com.openkappa.splitmap;
 import org.roaringbitmap.Container;
 
 import java.util.function.IntUnaryOperator;
+import java.util.stream.Stream;
 
 public class SplitMap {
 
@@ -35,6 +36,10 @@ public class SplitMap {
     return index.streamUniformPartitions()
             .mapToInt(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
             .sum();
+  }
+
+  public Stream<PrefixIndex<Container>> stream() {
+    return index.streamUniformPartitions();
   }
 
   PrefixIndex<Container> getIndex() {

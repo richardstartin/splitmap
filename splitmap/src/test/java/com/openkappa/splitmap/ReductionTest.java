@@ -66,8 +66,7 @@ public class ReductionTest {
     }
 
     SplitMap filter = filterWriter.toSplitMap();
-    double[] factors = filter.getIndex()
-            .streamUniformPartitions()
+    double[] factors = filter.stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<InputModel>reducer(pi1, pi2)).getReducedValue())
             .reduce(Reducers::sum)
@@ -134,11 +133,10 @@ public class ReductionTest {
     }
 
     SplitMap filter = filterWriter.toSplitMap();
-    double pmcc = filter.getIndex()
-            .streamUniformPartitions()
+    double pmcc = filter.stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<InputModel>reducer(pi1, pi2)))
-            .collect(pmcc());
+            .collect(SimpleLinearRegression.pmcc());
     assertEquals(pmcc, pmccExpected, 1E-5);
   }
 
@@ -168,8 +166,7 @@ public class ReductionTest {
     }
 
     SplitMap filter = filterWriter.toSplitMap();
-    double avg = filter.getIndex()
-            .streamUniformPartitions()
+    double avg = filter.stream()
             .parallel()
             .map(partition -> partition.reduce(Average.<InputModel>reducer(pi1)))
             .collect(Average.collector());
@@ -215,8 +212,7 @@ public class ReductionTest {
     }
 
     SplitMap filter = filterWriter.toSplitMap();
-    double sp = filter.getIndex()
-            .streamUniformPartitions()
+    double sp = filter.stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<InputModel>reducer(pi1, pi2)))
             .sum();

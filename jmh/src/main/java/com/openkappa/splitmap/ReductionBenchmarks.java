@@ -62,10 +62,8 @@ public class ReductionBenchmarks {
 
   @Benchmark
   public double reduceQty() {
-    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)),
-            instrumentIndex[instId1], ccyIndex[ccyId])
-            .getIndex()
-            .streamUniformPartitions()
+    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)), instrumentIndex[instId1], ccyIndex[ccyId])
+            .stream()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
@@ -87,8 +85,7 @@ public class ReductionBenchmarks {
   @Benchmark
   public double qtyXPriceForInstrumentIndex() {
     return instrumentIndex[instId1]
-            .getIndex()
-            .streamUniformPartitions()
+            .stream()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
@@ -106,8 +103,7 @@ public class ReductionBenchmarks {
   public double productMomentCorrelationCoefficient() {
     return Circuits.evaluate(slice -> slice.get(0).lazyOR(slice.get(1)),
                     instrumentIndex[instId1], ccyIndex[ccyId])
-            .getIndex()
-            .streamUniformPartitions()
+            .stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<PriceQty>reducer(price, qty)))
             .collect(SimpleLinearRegression.pmcc());
@@ -127,8 +123,7 @@ public class ReductionBenchmarks {
   public double qtyXPriceForInstrumentIndexXOR() {
     return Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
             instrumentIndex[instId1], ccyIndex[ccyId])
-            .getIndex()
-            .streamUniformPartitions()
+            .stream()
             .parallel()
             .mapToDouble(partition -> {
               double[] closure = new double[1];
