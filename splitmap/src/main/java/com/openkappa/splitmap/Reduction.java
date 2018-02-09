@@ -1,6 +1,6 @@
 package com.openkappa.splitmap;
 
-public class Reducers {
+public class Reduction {
 
   public static double[] sum(double[] l, double[] r) {
     if (null == l) {
@@ -20,5 +20,9 @@ public class Reducers {
     for (int i = 0; i < l.length && i < r.length; ++i) {
       l[i] += r[i];
     }
+  }
+
+  public static double add(double x, double y) {
+    return x + y;
   }
 }

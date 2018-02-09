@@ -9,14 +9,14 @@ public class CircuitsTest {
 
   @Test
   public void testIntersect() {
-    PageWriter w1 = new PageWriter();
+    SplitMapPageWriter w1 = new SplitMapPageWriter();
     w1.add(0);
     w1.add(1);
     w1.add(1 << 16);
     w1.add(1 << 16 | 1);
     w1.add(1 << 17 | 1);
 
-    PageWriter w2 = new PageWriter();
+    SplitMapPageWriter w2 = new SplitMapPageWriter();
     w2.add(0);
     w2.add(2);
     w2.add(1 << 16);
@@ -33,14 +33,14 @@ public class CircuitsTest {
 
   @Test
   public void testCircuit() {
-    PageWriter w1 = new PageWriter();
+    SplitMapPageWriter w1 = new SplitMapPageWriter();
     w1.add(0);
     w1.add(1);
     w1.add(1 << 16);
     w1.add(1 << 16 | 1);
     w1.add(1 << 17 | 1);
 
-    PageWriter w2 = new PageWriter();
+    SplitMapPageWriter w2 = new SplitMapPageWriter();
     w2.add(0);
     w2.add(2);
     w2.add(1 << 16);

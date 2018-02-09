@@ -9,7 +9,7 @@ public class SplitMapTest {
 
   @Test
   public void testWriteToSplitMap() {
-    PageWriter writer = new PageWriter();
+    SplitMapPageWriter writer = new SplitMapPageWriter();
     writer.add(1);
     writer.add(11);
     writer.add(1 << 16 | 1);
@@ -22,7 +22,7 @@ public class SplitMapTest {
 
   @Test
   public void testWriteToSplitMapWithPermutationHash() {
-    PageWriter writer = new PageWriter(InvertibleHashing::scatter);
+    SplitMapPageWriter writer = new SplitMapPageWriter(InvertibleHashing::scatter);
     writer.add(1);
     writer.add(11);
     writer.add(1 << 16 | 1);
@@ -34,7 +34,7 @@ public class SplitMapTest {
 
   @Test
   public void testCardinality() {
-    PageWriter writer = new PageWriter();
+    SplitMapPageWriter writer = new SplitMapPageWriter();
     writer.add(1);
     writer.add(1 << 14);
     writer.add(1 << 16 | 1);

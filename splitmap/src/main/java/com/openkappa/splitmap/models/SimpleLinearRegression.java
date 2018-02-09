@@ -1,9 +1,6 @@
 package com.openkappa.splitmap.models;
 
-import com.openkappa.splitmap.PrefixIndex;
-import com.openkappa.splitmap.Reducers;
-import com.openkappa.splitmap.ReductionContext;
-import com.openkappa.splitmap.ReductionProcedure;
+import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
 import org.roaringbitmap.Container;
 
@@ -28,15 +25,17 @@ public enum SimpleLinearRegression {
   private static final ProductMomentCorrelationCoefficientCollector PMCC = new ProductMomentCorrelationCoefficientCollector();
 
   public static <Model extends Enum<Model>>
-  ReductionProcedure<Model, SimpleLinearRegression, double[], Container> reducer(PrefixIndex<double[]> x1, PrefixIndex<double[]> x2) {
-    ReductionContext<Model, SimpleLinearRegression, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, x1, x2);
+  ReductionProcedure<Model, SimpleLinearRegression, double[], Container> reducer(PrefixIndex<ChunkedDoubleArray> x1,
+                                                                                 PrefixIndex<ChunkedDoubleArray> x2) {
+    ReductionContext<Model, SimpleLinearRegression, double[]> ctx
+            = new DoubleArrayReductionContext<>(PARAMETER_COUNT, x1, x2);
     return ReductionProcedure.mixin(ctx,
             (key, mask) -> {
-              double[] x = ctx.readChunk(0, key);
-              double[] y = ctx.readChunk(1, key);
+              ChunkedDoubleArray x = ctx.readChunk(0, key);
+              ChunkedDoubleArray y = ctx.readChunk(1, key);
               mask.forEach((short) 0, i -> {
-                double sx = x[i];
-                double sy = y[i];
+                double sx = x.get(i);
+                double sy = y.get(i);
                 double sxx = sx * sx;
                 double syy = sy * sy;
                 double sxy = sx * sy;
@@ -68,12 +67,12 @@ public enum SimpleLinearRegression {
 
     @Override
     public BiConsumer<double[], ReductionContext<Model, SimpleLinearRegression, double[]>> accumulator() {
-      return (l, r) -> Reducers.sumRightIntoLeft(l, r.getReducedValue());
+      return (l, r) -> Reduction.sumRightIntoLeft(l, r.getReducedValue());
     }
 
     @Override
     public BinaryOperator<double[]> combiner() {
-      return Reducers::sum;
+      return Reduction::sum;
     }
 
     @Override

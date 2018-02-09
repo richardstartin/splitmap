@@ -30,7 +30,7 @@ public class PointBenchmarks {
   @Setup(Level.Trial)
   public void setup() {
     int[] data = randomArray(keys, runniness, dirtiness);
-    PageWriter writer = new PageWriter();
+    SplitMapPageWriter writer = new SplitMapPageWriter();
     IntStream.of(data).forEach(writer::add);
     splitMap = writer.toSplitMap();
     bitmap = RoaringBitmap.bitmapOf(data);

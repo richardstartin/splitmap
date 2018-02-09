@@ -13,7 +13,7 @@ public class DataGenerator {
     int[] keys = createSorted16BitInts(maxKeys);
     double rleLimit = runniness;
     double denseLimit = runniness + dirtiness;
-    PageWriter writer = new PageWriter();
+    SplitMapPageWriter writer = new SplitMapPageWriter();
     IntStream.of(keys)
             .forEach(key -> {
               double choice = ThreadLocalRandom.current().nextDouble();

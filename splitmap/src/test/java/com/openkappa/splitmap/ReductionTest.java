@@ -10,7 +10,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 
-import static com.openkappa.splitmap.models.SimpleLinearRegression.*;
 import static org.testng.Assert.assertEquals;
 
 public class ReductionTest {
@@ -44,32 +43,30 @@ public class ReductionTest {
       statistics[5] += 1;
     }
 
-    PrefixIndex<double[]> pi1 = new PrefixIndex<>();
-    PrefixIndex<double[]> pi2 = new PrefixIndex<>();
-    double[] page1 = new double[1 << 16];
-    double[] page2 = new double[1 << 16];
-
-    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
 
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
       for (int i = 0; i < 50; ++i) {
         filterWriter.add(key + i);
-        page1[i] = values1[i + multiple * 50];
-        page2[i] = values2[i + multiple * 50];
+        writer1.add(key + i, values1[i + multiple * 50]);
+        writer2.add(key + i, values2[i + multiple * 50]);
       }
-      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
-      pi2.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
       ++multiple;
       key += 1 << 16;
     }
+
+    PrefixIndex<ChunkedDoubleArray> pi1 = writer1.toIndex();
+    PrefixIndex<ChunkedDoubleArray> pi2 = writer2.toIndex();
 
     SplitMap filter = filterWriter.toSplitMap();
     double[] factors = filter.stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<InputModel>reducer(pi1, pi2)).getReducedValue())
-            .reduce(Reducers::sum)
+            .reduce(Reduction::sum)
             .orElseGet(() -> new double[6]);
 
     System.out.println(Arrays.toString(statistics) + " -> " + Arrays.toString(factors));
@@ -111,28 +108,25 @@ public class ReductionTest {
     double n = statistics[5];
     double pmccExpected =  (n * spq - sq * sp) / (Math.sqrt((n * spp - sp * sp) * (n * sqq - sq * sq)));
 
-    PrefixIndex<double[]> pi1 = new PrefixIndex<>();
-    PrefixIndex<double[]> pi2 = new PrefixIndex<>();
-    double[] page1 = new double[1 << 16];
-    double[] page2 = new double[1 << 16];
-
-    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
 
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
       for (int i = 0; i < 50; ++i) {
         filterWriter.add(key + i);
-        page1[i] = values1[i + multiple * 50];
-        page2[i] = values2[i + multiple * 50];
+        writer1.add(key + i, values1[i + multiple * 50]);
+        writer2.add(key + i, values2[i + multiple * 50]);
       }
-      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
-      pi2.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
       ++multiple;
       key += 1 << 16;
     }
 
     SplitMap filter = filterWriter.toSplitMap();
+    PrefixIndex<ChunkedDoubleArray> pi1 = writer1.toIndex();
+    PrefixIndex<ChunkedDoubleArray> pi2 = writer2.toIndex();
     double pmcc = filter.stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<InputModel>reducer(pi1, pi2)))
@@ -151,7 +145,7 @@ public class ReductionTest {
 
 
     PrefixIndex<double[]> pi1 = new PrefixIndex<>();
-    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
     double[] page1 = new double[1 << 16];
     int key = 0;
     int multiple = 0;
@@ -190,27 +184,25 @@ public class ReductionTest {
     }
 
 
-    PrefixIndex<double[]> pi1 = new PrefixIndex<>();
-    PrefixIndex<double[]> pi2 = new PrefixIndex<>();
-    PageWriter filterWriter = new PageWriter(InvertibleHashing::scatter);
-    double[] page1 = new double[1 << 16];
-    double[] page2 = new double[1 << 16];
-    Arrays.fill(page1, -1); // wreak havoc if we touch parts not granted by the mask
-    Arrays.fill(page2, -100); // wreak havoc if we touch parts not granted by the mask
+
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
       for (int i = 0; i < 50; ++i) {
         filterWriter.add(key + i);
-        page1[i] = values1[i + multiple * 50];
-        page2[i] = values2[i + multiple * 50];
+        writer1.add(key + i, values1[i + multiple * 50]);
+        writer2.add(key + i, values2[i + multiple * 50]);
       }
-      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
-      pi2.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page2, page2.length));
       ++multiple;
       key += 1 << 16;
     }
 
+    PrefixIndex<ChunkedDoubleArray> pi1 = writer1.toIndex();
+    PrefixIndex<ChunkedDoubleArray> pi2 = writer2.toIndex();
     SplitMap filter = filterWriter.toSplitMap();
     double sp = filter.stream()
             .parallel()

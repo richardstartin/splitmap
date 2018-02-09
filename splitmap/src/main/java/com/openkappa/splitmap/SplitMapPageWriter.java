@@ -6,7 +6,7 @@ import org.roaringbitmap.Container;
 import java.util.Arrays;
 import java.util.function.IntUnaryOperator;
 
-public class PageWriter {
+public class SplitMapPageWriter {
 
   private final IntUnaryOperator hash;
   private final long[] bitmap = new long[1 << 10];
@@ -14,11 +14,11 @@ public class PageWriter {
   private int currentKey = -1;
   private boolean dirty;
 
-  public PageWriter() {
+  public SplitMapPageWriter() {
     this(InvertibleHashing::scatter);
   }
 
-  public PageWriter(IntUnaryOperator hash) {
+  public SplitMapPageWriter(IntUnaryOperator hash) {
     this.splitMap = new SplitMap(hash);
     this.hash = hash;
   }

@@ -1,7 +1,7 @@
 package com.openkappa.splitmap.models;
 
 import com.openkappa.splitmap.PrefixIndex;
-import com.openkappa.splitmap.Reducers;
+import com.openkappa.splitmap.Reduction;
 import com.openkappa.splitmap.ReductionContext;
 import com.openkappa.splitmap.ReductionProcedure;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
@@ -52,12 +52,12 @@ public enum Average {
 
     @Override
     public BiConsumer<double[], ReductionContext<Model, Average, double[]>> accumulator() {
-      return (l, r) -> Reducers.sumRightIntoLeft(l, r.getReducedValue());
+      return (l, r) -> Reduction.sumRightIntoLeft(l, r.getReducedValue());
     }
 
     @Override
     public BinaryOperator<double[]> combiner() {
-      return Reducers::sum;
+      return Reduction::sum;
     }
 
     @Override
