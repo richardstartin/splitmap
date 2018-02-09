@@ -1,9 +1,9 @@
 package com.openkappa.splitmap.models;
 
-import com.openkappa.splitmap.KeyValueConsumer;
 import com.openkappa.splitmap.PrefixIndex;
 import com.openkappa.splitmap.Reducers;
 import com.openkappa.splitmap.ReductionContext;
+import com.openkappa.splitmap.ReductionProcedure;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
 import org.roaringbitmap.Container;
 
@@ -21,24 +21,24 @@ public enum Average {
   COUNT;
 
   public static final int PARAMETER_COUNT = values().length;
+  private static final AveragingCollector AVG = new AveragingCollector();
 
-  public static <Model extends Enum<Model>> KeyValueConsumer<Container> createEvaluation(
-          ReductionContext<Model, Average, double[]> ctx) {
-    return (key, mask) -> {
+  public static <Model extends Enum<Model>>
+  ReductionProcedure<Model, Average, double[], Container> reducer(PrefixIndex<double[]> input) {
+    ReductionContext<Model, Average, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, input);
+    return ReductionProcedure.mixin(ctx, (key, mask) -> {
       double[] x = ctx.readChunk(0, key);
       mask.forEach((short) 0, i -> {
         ctx.contributeDouble(SUM, x[i], (l, r) -> l + r);
         ctx.contributeDouble(COUNT, 1, (l, r) -> l + r);
       });
-    };
+    });
   }
 
   public static <Model extends Enum<Model>>
-  ReductionContext<Model, Average, double[]> createContext(PrefixIndex<double[]> x) {
-    return new DoubleArrayReductionContext<>(PARAMETER_COUNT, x);
+  Collector<ReductionContext<Model, Average, double[]>, double[], Double> collector() {
+    return (AveragingCollector<Model>) AVG;
   }
-
-  public static final Collector<ReductionContext<?, Average, double[]>, double[], Double> AVG = new AveragingCollector();
 
   private static class AveragingCollector<Model extends Enum<Model>>
           implements Collector<ReductionContext<Model, Average, double[]>, double[], Double> {

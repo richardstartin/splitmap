@@ -15,7 +15,7 @@ public class SplitMap {
   }
 
   public SplitMap(PrefixIndex<Container> index) {
-    this (index, InvertibleHashing::scatter);
+    this(index, InvertibleHashing::scatter);
   }
 
   public SplitMap(IntUnaryOperator hash) {
@@ -33,8 +33,8 @@ public class SplitMap {
 
   public long getCardinality() {
     return index.streamUniformPartitions()
-      .mapToInt(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
-      .sum();
+            .mapToInt(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
+            .sum();
   }
 
   PrefixIndex<Container> getIndex() {

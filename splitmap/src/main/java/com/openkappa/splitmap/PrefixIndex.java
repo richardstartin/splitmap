@@ -10,11 +10,11 @@ import static java.lang.Long.numberOfTrailingZeros;
 public class PrefixIndex<T> {
 
   static final int PARTITIONS;
-
+  static final int PARTITION_SIZE;
   static {
     PARTITIONS = Runtime.getRuntime().availableProcessors();
+    PARTITION_SIZE = (1 << 10) / PARTITIONS;
   }
-  static final int PARTITION_SIZE = (1 << 10) / PARTITIONS;
 
   private final long[] keys;
   private final ChunkedArray<T> values;
@@ -87,6 +87,31 @@ public class PrefixIndex<T> {
       }
       prefix += Long.SIZE;
     }
+  }
+
+
+  public <Model extends Enum<Model>, Output extends Enum<Output>, Result>
+  ReductionContext<Model, Output, Result> reduce(ReductionProcedure<Model, Output, Result, T> procedure) {
+    forEach(procedure);
+    return procedure;
+  }
+
+  public <Output extends Enum<Output>>
+  double reduceDouble(ReductionProcedure<?, Output, Double, T> procedure) {
+    forEach(procedure);
+    return procedure.getReducedDouble();
+  }
+
+  public <Output extends Enum<Output>>
+  long reduceLong(ReductionProcedure<?, Output, Long, T> procedure) {
+    forEach(procedure);
+    return procedure.getReducedLong();
+  }
+
+  public <Output extends Enum<Output>>
+  int reduceInt(ReductionProcedure<?, Output, Integer, T> procedure) {
+    forEach(procedure);
+    return procedure.getReducedInt();
   }
 
   public long reduceLong(long initial, ToLongFunction<T> map, LongBinaryOperator reduce) {

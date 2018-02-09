@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static com.openkappa.splitmap.PrefixIndex.PARTITIONS;
 import static com.openkappa.splitmap.PrefixIndex.PARTITION_SIZE;

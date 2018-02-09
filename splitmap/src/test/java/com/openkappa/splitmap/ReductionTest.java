@@ -1,7 +1,7 @@
 package com.openkappa.splitmap;
 
 import com.openkappa.splitmap.models.Average;
-import com.openkappa.splitmap.models.LinearRegression;
+import com.openkappa.splitmap.models.SimpleLinearRegression;
 import com.openkappa.splitmap.models.SumProduct;
 import org.testng.annotations.Test;
 
@@ -10,9 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 
-import static com.openkappa.splitmap.models.Average.AVG;
-import static com.openkappa.splitmap.models.Average.SUM;
-import static com.openkappa.splitmap.models.LinearRegression.*;
+import static com.openkappa.splitmap.models.SimpleLinearRegression.*;
 import static org.testng.Assert.assertEquals;
 
 public class ReductionTest {
@@ -71,11 +69,7 @@ public class ReductionTest {
     double[] factors = filter.getIndex()
             .streamUniformPartitions()
             .parallel()
-            .map(partition -> {
-              ReductionContext<InputModel, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
-              partition.forEach(LinearRegression.createEvaluation(ctx));
-              return ctx.getReducedValue();
-            })
+            .map(partition -> partition.reduce(SimpleLinearRegression.<InputModel>reducer(pi1, pi2)).getReducedValue())
             .reduce(Reducers::sum)
             .orElseGet(() -> new double[6]);
 
@@ -143,12 +137,8 @@ public class ReductionTest {
     double pmcc = filter.getIndex()
             .streamUniformPartitions()
             .parallel()
-            .map(partition -> {
-              ReductionContext<?, LinearRegression, double[]> ctx = LinearRegression.createContext(pi1, pi2);
-              partition.forEach(LinearRegression.createEvaluation(ctx));
-              return ctx;
-            })
-            .collect(PMCC);
+            .map(partition -> partition.reduce(SimpleLinearRegression.<InputModel>reducer(pi1, pi2)))
+            .collect(pmcc());
     assertEquals(pmcc, pmccExpected, 1E-5);
   }
 
@@ -181,12 +171,8 @@ public class ReductionTest {
     double avg = filter.getIndex()
             .streamUniformPartitions()
             .parallel()
-            .map(partition -> {
-              ReductionContext<?, Average, double[]> ctx = Average.createContext(pi1);
-              partition.forEach(Average.createEvaluation(ctx));
-              return ctx;
-            })
-            .collect(AVG);
+            .map(partition -> partition.reduce(Average.<InputModel>reducer(pi1)))
+            .collect(Average.collector());
 
     assertEquals(avg, avgExpected, 1E-5);
   }
@@ -232,11 +218,7 @@ public class ReductionTest {
     double sp = filter.getIndex()
             .streamUniformPartitions()
             .parallel()
-            .mapToDouble(partition -> {
-              ReductionContext<?, SumProduct, Double> ctx = SumProduct.createContext(pi1, pi2);
-              partition.forEach(SumProduct.createEvaluation(ctx));
-              return ctx.getReducedDouble();
-            })
+            .mapToDouble(partition -> partition.reduceDouble(SumProduct.<InputModel>reducer(pi1, pi2)))
             .sum();
 
     assertEquals(sp, spExpected, 1E-5);

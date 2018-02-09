@@ -40,8 +40,8 @@ public class PageWriter {
   public void flush() {
     if (dirty) {
       Container container = new BitmapContainer(bitmap, -1).repairAfterLazy();
-      splitMap.insert((short)hash.applyAsInt(currentKey >>> 16),
-                      container instanceof BitmapContainer ? container.clone() : container);
+      splitMap.insert((short) hash.applyAsInt(currentKey >>> 16),
+              container instanceof BitmapContainer ? container.clone() : container);
       clear();
     }
   }

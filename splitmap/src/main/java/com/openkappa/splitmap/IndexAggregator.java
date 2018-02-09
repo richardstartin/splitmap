@@ -17,7 +17,7 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
 
   private final Function<List<T>, T> circuit;
 
-  // no two threads will ever write to the same partition because of the spliterator on the PrefixIndex
+  // no two threads will ever write to the same partition because mixin the spliterator on the PrefixIndex
   private final PrefixIndex<T> target = new PrefixIndex<>();
 
   public IndexAggregator(Function<List<T>, T> circuit) {

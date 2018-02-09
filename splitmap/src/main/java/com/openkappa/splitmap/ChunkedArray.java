@@ -2,7 +2,6 @@ package com.openkappa.splitmap;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 public class ChunkedArray<T> {
 

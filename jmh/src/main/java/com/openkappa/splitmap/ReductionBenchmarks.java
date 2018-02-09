@@ -1,6 +1,6 @@
 package com.openkappa.splitmap;
 
-import com.openkappa.splitmap.models.LinearRegression;
+import com.openkappa.splitmap.models.SimpleLinearRegression;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.Arrays;
@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class ReductionBenchmarks {
 
-  enum Model2D {
+  enum PriceQty {
     X, Y
   }
 
@@ -109,11 +109,8 @@ public class ReductionBenchmarks {
             .getIndex()
             .streamUniformPartitions()
             .parallel()
-            .map(partition -> {
-              ReductionContext<Model2D, LinearRegression, double[]> ctx = LinearRegression.createContext(qty, price);
-              partition.forEach(LinearRegression.createEvaluation(ctx));
-              return ctx;
-            }).collect(LinearRegression.PMCC);
+            .map(partition -> partition.reduce(SimpleLinearRegression.<PriceQty>reducer(price, qty)))
+            .collect(SimpleLinearRegression.pmcc());
   }
 
 

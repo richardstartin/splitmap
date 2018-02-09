@@ -5,7 +5,8 @@ public class Reducers {
   public static double[] sum(double[] l, double[] r) {
     if (null == l) {
       return r;
-    } if (null == r) {
+    }
+    if (null == r) {
       return l;
     }
     sumRightIntoLeft(l, r);
