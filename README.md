@@ -10,8 +10,8 @@ For instance, to compute a sum product on a dataset filtered such that only one 
     SplitMap februarySalesIndex = ...
     SplitMap luxuryProductsIndex = ...
 
-    double februaryRevenueFromLuxuryProducts = Circuits.evaluate(slice -> slice.get(0).and(slice.get(1)), 
-                                                                februarySalesIndex, luxuryProductsIndex)
+    double februaryRevenueFromLuxuryProducts = 
+            Circuits.evaluate(slice -> slice.get(0).and(slice.get(1)), februarySalesIndex, luxuryProductsIndex)
             .getIndex()
             .streamUniformPartitions()
             .parallel()
