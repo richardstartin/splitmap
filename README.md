@@ -10,7 +10,7 @@ For instance, to compute a sum product on a dataset filtered such that only one 
     SplitMap luxuryProductsIndex = ...
 
     double februaryRevenueFromLuxuryProducts = 
-            Circuits.evaluate(slice -> slice.get(0).and(slice.get(1)), februarySalesIndex, luxuryProductsIndex)
+            Circuits.evaluateIfKeysIntersect(slice -> slice.get(0).and(slice.get(1)), februarySalesIndex, luxuryProductsIndex)
             .stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, quantities)))
