@@ -1,7 +1,6 @@
 # splitmap
-A parallel bitmap implementation
 
-This library builds on top of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap) to provide a parallel implementation of boolean circuits (multidimensional filters) and arbitrary aggregations over the filtered sets.
+This library builds on top of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap) to provide a parallel implementation of boolean circuits (multidimensional filters) and arbitrary aggregations over filters.
 
 For instance, to compute a sum product on a dataset filtered such that only one of two conditions holds:
 ```java
@@ -11,9 +10,8 @@ For instance, to compute a sum product on a dataset filtered such that only one 
     SplitMap luxuryProductsIndex = ...
 
     double februaryRevenueFromLuxuryProducts = 
-            Circuits.evaluate(slice -> slice.get(0).and(slice.get(1)), februarySalesIndex, luxuryProductsIndex)
-            .getIndex()
-            .streamUniformPartitions()
+            Circuits.evaluateIfKeysIntersect(slice -> slice.get(0).and(slice.get(1)), februarySalesIndex, luxuryProductsIndex)
+            .stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, quantities)))
             .sum();
@@ -33,8 +31,7 @@ It is easy to write arbitrary routines combining filtering, calculation and aggr
     SplitMap market1Index = ...
     // evaluate product moment correlation coefficient 
     return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)), market1Index,instrument1Index) 
-            .getIndex()
-            .streamUniformPartitions()
+            .stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<Exchanges>reducer(exchange1Prices, exchange2Prices)))
             .collect(SimpleLinearRegression.pmcc());
