@@ -57,9 +57,18 @@ public class ReductionBenchmarks {
   public double sanityCheck() {
     double sum = 0D;
     for (int i = 0; i < test.length; ++i) {
-      sum += 0.1 * test[i];
+      sum += test[i];
     }
-    return sum + 10;
+    return sum;
+  }
+
+  @Benchmark
+  public double sanityCheckStream() {
+    return trades.parallelStream()
+            .filter(trade -> trade.instrumentName.equals(instrumentNames[instId1]))
+            .filter(trade -> trade.ccyId.equals(currencies[ccyId]))
+            .mapToDouble(Trade::getQty)
+            .sum();
   }
 
 
