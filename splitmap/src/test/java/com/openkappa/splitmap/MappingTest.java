@@ -86,26 +86,23 @@ public class MappingTest {
   @Test
   public void mappingPOC() {
     Mapper<MyDomainObject, MyFilters, MyMetrics> mapper = Mapper.<MyDomainObject, MyFilters, MyMetrics>builder()
-            .setFilterModel(MyFilters.class).setMetricModel(MyMetrics.class).build();
+            .withFilterModel(MyFilters.class).withMetricModel(MyMetrics.class).build();
     IntStream.range(0, 100000)
             .mapToObj(i -> randomDomainObject())
             .forEach(mapper::consume);
-    QueryContext<MyDomainObject, MyFilters, MyMetrics> ctx = mapper.snapshot();
+    QueryContext<MyDomainObject, MyFilters, MyMetrics> df = mapper.snapshot();
     double revenue = Circuits.evaluateIfKeysIntersect(slice -> slice.get(0).and(slice.get(1)),
-            ctx.getSplitMap(FOO_FILTER), ctx.getSplitMap(EXPENSIVE))
+            df.indicesFor(FOO_FILTER, EXPENSIVE))
             .stream()
             .parallel()
-            .mapToDouble(partition -> partition.reduceDouble(SumProduct.<MyMetrics>reducer(ctx.getMetricColumn(PRICE), ctx.getMetricColumn(QUANTITY))))
+            .mapToDouble(partition -> partition.reduceDouble(SumProduct.<MyMetrics>reducer(df.getMetric(PRICE), df.getMetric(QUANTITY))))
             .sum();
 
-    long count = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
-            ctx.getSplitMap(BAR_FILTER), ctx.getSplitMap(EXPENSIVE))
-            .getCardinality();
+    long count = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), df.indicesFor(BAR_FILTER, EXPENSIVE)).getCardinality();
 
-    double avgPrice = Circuits.evaluate(slice -> slice.get(0).andNot(slice.get(1)),
-            ctx.getSplitMap(BAR_FILTER), ctx.getSplitMap(EXPENSIVE))
+    double avgPrice = Circuits.evaluate(slice -> slice.get(0).andNot(slice.get(1)), df.indicesFor(BAR_FILTER, EXPENSIVE))
             .stream()
-            .map(partition -> partition.reduce(Average.<MyMetrics>reducer(ctx.getMetricColumn(PRICE))))
+            .map(partition -> partition.reduce(Average.<MyMetrics>reducer(df.getMetric(PRICE))))
             .collect(Average.collector());
   }
 

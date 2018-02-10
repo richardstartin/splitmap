@@ -38,7 +38,7 @@ public class Mapper<Value, FilterModel extends Enum<FilterModel> & Filter<Value>
   }
 
   public QueryContext<Value, FilterModel, MetricModel> snapshot() {
-    return new QueryContext<>(snapshotFilters(filterModel, filters), snapshotMetrics(metricModel, metrics));
+    return new QueryContext<>(filterModel, snapshotFilters(filterModel, filters), snapshotMetrics(metricModel, metrics));
   }
 
 
@@ -48,12 +48,12 @@ public class Mapper<Value, FilterModel extends Enum<FilterModel> & Filter<Value>
     private IntUnaryOperator hash = InvertibleHashing::scatter;
 
 
-    public Builder<Value, FilterModel, MetricModel> setFilterModel(Class<FilterModel> filterModel) {
+    public Builder<Value, FilterModel, MetricModel> withFilterModel(Class<FilterModel> filterModel) {
       this.filterModel = filterModel;
       return this;
     }
 
-    public Builder<Value, FilterModel, MetricModel> setMetricModel(Class<MetricModel> metricModel) {
+    public Builder<Value, FilterModel, MetricModel> withMetricModel(Class<MetricModel> metricModel) {
       this.metricModel = metricModel;
       return this;
     }
