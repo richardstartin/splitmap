@@ -13,11 +13,7 @@ public enum SumProduct {
     return ReductionProcedure.mixin(ctx, (key, mask) -> {
       ChunkedDoubleArray x = ctx.readChunk(0, key);
       ChunkedDoubleArray y = ctx.readChunk(1, key);
-      try {
-        mask.forEach((short) 0, i -> ctx.contributeDouble(SUM_PRODUCT, x.get(i) * y.get(i), Reduction::add));
-      } catch (NullPointerException e) {
-        throw e;
-      }
+      mask.forEach((short) 0, i -> ctx.contributeDouble(SUM_PRODUCT, x.get(i) * y.get(i), Reduction::add));
     });
   }
 }
