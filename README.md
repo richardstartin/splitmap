@@ -8,9 +8,12 @@ For instance, to compute a sum product on a dataset filtered such that only one 
     PrefixIndex<double[]> prices = ...
     SplitMap februarySalesIndex = ...
     SplitMap luxuryProductsIndex = ...
+    QueryContext<String, PriceQty> context = new QueryContext<>(
+    Map.ofEntries(entry("luxuryProducts", luxuryProductsIndex), entry("febSales", februarySalesIndex), 
+    Map.ofEntries(entry(PRICE, prices), entry(QTY, quantities)))); 
 
     double februaryRevenueFromLuxuryProducts = 
-            Circuits.evaluateIfKeysIntersect(slice -> slice.get(0).and(slice.get(1)), februarySalesIndex, luxuryProductsIndex)
+            Circuits.evaluateIfKeysIntersect(context, slice -> slice.get("febSales").and(slice.get("luxuryProducts")), "febSales", "luxuryProducts")
             .stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, quantities)))
@@ -26,11 +29,14 @@ It is easy to write arbitrary routines combining filtering, calculation and aggr
     // calculate the correlation coefficient between prices observed on different exchanges
     PrefixIndex<double[]> exchange1Prices = ...
     PrefixIndex<double[]> exchange2Prices = ...
-    // but only for instrument1 or market1
-    SplitMap instrument1Index = ...
-    SplitMap market1Index = ...
+    SplitMap beforeClose = ...
+    SplitMap afterOpen = ...
+    QueryContext<String, PriceQty> context = new QueryContext<>(
+    Map.ofEntries(entry(BEFORE_CLOSE, beforeClose), entry(AFTER_OPEN, afterOpen), 
+    Map.ofEntries(entry(NASDAQ, exchange1Prices), entry(LSE, exchange2Prices)))); 
     // evaluate product moment correlation coefficient 
-    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)), market1Index,instrument1Index) 
+    return Circuits.evaluate(context, slice -> slice.get(BEFORE_CLOSE).or(slice.get(AFTER_OPEN)), 
+            BEFORE_CLOSE, AFTER_OPEN) 
             .stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<Exchanges>reducer(exchange1Prices, exchange2Prices)))
