@@ -144,20 +144,20 @@ public class ReductionTest {
     double avgExpected = Arrays.stream(values1).sum() / 1000D;
 
 
-    PrefixIndex<double[]> pi1 = new PrefixIndex<>();
+    DoubleArrayPageWriter writer = new DoubleArrayPageWriter(InvertibleHashing::scatter);
     SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
-    double[] page1 = new double[1 << 16];
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
       for (int i = 0; i < 50; ++i) {
         filterWriter.add(key + i);
-        page1[i] = values1[i + multiple * 50];
+        writer.add(key + i, values1[i + multiple * 50]);
       }
-      pi1.insert((short) InvertibleHashing.scatter(key >>> 16), Arrays.copyOf(page1, page1.length));
       ++multiple;
       key += 1 << 16;
     }
+
+    PrefixIndex<ChunkedDoubleArray> pi1 = writer.toIndex();
 
     SplitMap filter = filterWriter.toSplitMap();
     double avg = filter.stream()
@@ -182,8 +182,6 @@ public class ReductionTest {
     for (int i = 0; i < 1000; ++i) {
       spExpected += values1[i] * values2[i];
     }
-
-
 
     SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
     DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);

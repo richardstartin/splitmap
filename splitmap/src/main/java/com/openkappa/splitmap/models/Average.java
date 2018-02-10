@@ -1,9 +1,6 @@
 package com.openkappa.splitmap.models;
 
-import com.openkappa.splitmap.PrefixIndex;
-import com.openkappa.splitmap.Reduction;
-import com.openkappa.splitmap.ReductionContext;
-import com.openkappa.splitmap.ReductionProcedure;
+import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
 import org.roaringbitmap.Container;
 
@@ -24,12 +21,12 @@ public enum Average {
   private static final AveragingCollector AVG = new AveragingCollector();
 
   public static <Model extends Enum<Model>>
-  ReductionProcedure<Model, Average, double[], Container> reducer(PrefixIndex<double[]> input) {
+  ReductionProcedure<Model, Average, double[], Container> reducer(PrefixIndex<ChunkedDoubleArray> input) {
     ReductionContext<Model, Average, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, input);
     return ReductionProcedure.mixin(ctx, (key, mask) -> {
-      double[] x = ctx.readChunk(0, key);
+      ChunkedDoubleArray x = ctx.readChunk(0, key);
       mask.forEach((short) 0, i -> {
-        ctx.contributeDouble(SUM, x[i], (l, r) -> l + r);
+        ctx.contributeDouble(SUM, x.get(i), (l, r) -> l + r);
         ctx.contributeDouble(COUNT, 1, (l, r) -> l + r);
       });
     });

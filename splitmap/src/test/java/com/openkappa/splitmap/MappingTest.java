@@ -1,5 +1,6 @@
 package com.openkappa.splitmap;
 
+import com.openkappa.splitmap.models.Average;
 import com.openkappa.splitmap.models.SumProduct;
 import org.testng.annotations.Test;
 
@@ -9,8 +10,7 @@ import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.IntStream;
 
-import static com.openkappa.splitmap.MappingTest.MyFilters.EXPENSIVE;
-import static com.openkappa.splitmap.MappingTest.MyFilters.FOO_FILTER;
+import static com.openkappa.splitmap.MappingTest.MyFilters.*;
 import static com.openkappa.splitmap.MappingTest.MyMetrics.PRICE;
 import static com.openkappa.splitmap.MappingTest.MyMetrics.QUANTITY;
 
@@ -97,6 +97,16 @@ public class MappingTest {
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<MyMetrics>reducer(ctx.getMetricColumn(PRICE), ctx.getMetricColumn(QUANTITY))))
             .sum();
+
+    long count = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
+            ctx.getSplitMap(BAR_FILTER), ctx.getSplitMap(EXPENSIVE))
+            .getCardinality();
+
+    double avgPrice = Circuits.evaluate(slice -> slice.get(0).andNot(slice.get(1)),
+            ctx.getSplitMap(BAR_FILTER), ctx.getSplitMap(EXPENSIVE))
+            .stream()
+            .map(partition -> partition.reduce(Average.<MyMetrics>reducer(ctx.getMetricColumn(PRICE))))
+            .collect(Average.collector());
   }
 
 
