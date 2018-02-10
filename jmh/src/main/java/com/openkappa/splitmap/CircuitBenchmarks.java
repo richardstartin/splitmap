@@ -4,6 +4,8 @@ import org.openjdk.jmh.annotations.*;
 import org.roaringbitmap.*;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -27,6 +29,9 @@ public class CircuitBenchmarks {
   PrefixIndex<Container>[] indices;
   RoaringBitmap[] bitmaps;
 
+  private QueryContext<Integer, ?> context;
+  private Integer[] values;
+
   @Setup(Level.Trial)
   public void setup() {
     splitMaps = IntStream.range(0, count)
@@ -36,12 +41,21 @@ public class CircuitBenchmarks {
     bitmaps = IntStream.range(0, count)
             .mapToObj(i -> RoaringBitmap.bitmapOf(randomArray(keys, runniness, dirtiness)))
             .toArray(RoaringBitmap[]::new);
+    Map<Integer, SplitMap> filters = new HashMap<>();
+    values = new Integer[count];
+    for (int i = 0; i < count; ++i) {
+      filters.put(i, splitMaps[i]);
+      values[i] = i;
+
+    }
+    context = new QueryContext<>(filters, null);
+
   }
 
 
   @Benchmark
   public SplitMap circuit1SplitMap() {
-    return Circuits.evaluate(slice -> {
+    return Circuits.evaluate(context, slice -> {
       Container difference = new ArrayContainer();
       Container union = new ArrayContainer();
       for (Container container : slice) {
@@ -51,12 +65,7 @@ public class CircuitBenchmarks {
         }
       }
       return difference.iand(union);
-    }, splitMaps);
-  }
-
-  @Benchmark
-  public PrefixIndex<?> groupByKey() {
-    return Circuits.groupByKey(new ArrayContainer(), indices);
+    }, values);
   }
 
   @Benchmark

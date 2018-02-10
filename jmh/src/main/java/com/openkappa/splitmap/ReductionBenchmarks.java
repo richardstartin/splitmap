@@ -2,24 +2,23 @@ package com.openkappa.splitmap;
 
 import com.openkappa.splitmap.models.SimpleLinearRegression;
 import com.openkappa.splitmap.models.SumProduct;
-import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
-import com.openkappa.splitmap.reduction.DoubleReductionContext;
 import org.openjdk.jmh.annotations.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static java.util.Map.entry;
 
 @State(Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class ReductionBenchmarks {
 
   enum PriceQty {
-    X, Y
+    PRICE,
+    QUANTITY
   }
 
 
@@ -40,6 +39,7 @@ public class ReductionBenchmarks {
   private int instId1;
   private int ccyId;
   private double[] test;
+  private QueryContext<Integer, PriceQty> context;
 
   @Setup(Level.Trial)
   public void setup() {
@@ -51,6 +51,9 @@ public class ReductionBenchmarks {
     for (int i = 0; i < tradeCount; ++i) {
       test[i] = ThreadLocalRandom.current().nextDouble();
     }
+    context = new QueryContext<>(Map.ofEntries(entry(0, instrumentIndex[instId1]), entry(1, ccyIndex[ccyId])),
+            new EnumMap<>(
+                    Map.ofEntries(entry(PriceQty.PRICE, price), entry(PriceQty.QUANTITY, qty))));
   }
 
   @Benchmark
@@ -74,7 +77,7 @@ public class ReductionBenchmarks {
 
   @Benchmark
   public double reduceQty() {
-    return Circuits.evaluate(slice -> slice.get(0).or(slice.get(1)), instrumentIndex[instId1], ccyIndex[ccyId])
+    return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
             .stream()
             .parallel()
             .mapToDouble(partition ->
@@ -98,8 +101,7 @@ public class ReductionBenchmarks {
 
   @Benchmark
   public double productMomentCorrelationCoefficient() {
-    return Circuits.evaluate(slice -> slice.get(0).lazyOR(slice.get(1)),
-                    instrumentIndex[instId1], ccyIndex[ccyId])
+    return Circuits.evaluate(context, slice -> slice.get(0).lazyOR(slice.get(1)), 0, 1)
             .stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<PriceQty>reducer(price, qty)))
@@ -118,8 +120,7 @@ public class ReductionBenchmarks {
 
   @Benchmark
   public double qtyXPriceForInstrumentIndexXOR() {
-    return Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)),
-            instrumentIndex[instId1], ccyIndex[ccyId])
+    return Circuits.evaluate(context, slice -> slice.get(0).xor(slice.get(1)), 0, 1)
             .stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, qty)))

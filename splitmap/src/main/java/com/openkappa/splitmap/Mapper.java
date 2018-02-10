@@ -37,8 +37,8 @@ public class Mapper<Value, FilterModel extends Enum<FilterModel> & Filter<Value>
     ++index;
   }
 
-  public QueryContext<Value, FilterModel, MetricModel> snapshot() {
-    return new QueryContext<>(filterModel, snapshotFilters(filterModel, filters), snapshotMetrics(metricModel, metrics));
+  public QueryContext<FilterModel, MetricModel> snapshot() {
+    return new QueryContext<>(snapshotFilters(filterModel, filters), snapshotMetrics(metricModel, metrics));
   }
 
 

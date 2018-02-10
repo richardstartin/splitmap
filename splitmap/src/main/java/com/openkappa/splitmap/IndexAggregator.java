@@ -13,14 +13,14 @@ import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.*;
 
-class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<T>, PrefixIndex<T>> {
+class IndexAggregator<Filter, T> implements Collector<PrefixIndex<Slice<Filter, T>>, PrefixIndex<T>, PrefixIndex<T>> {
 
-  private final Function<List<T>, T> circuit;
+  private final Function<Slice<Filter, T>, T> circuit;
 
   // no two threads will ever write to the same partition because mixin the spliterator on the PrefixIndex
   private final PrefixIndex<T> target = new PrefixIndex<>();
 
-  public IndexAggregator(Function<List<T>, T> circuit) {
+  public IndexAggregator(Function<Slice<Filter, T>, T> circuit) {
     this.circuit = circuit;
   }
 
@@ -30,7 +30,7 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
   }
 
   @Override
-  public BiConsumer<PrefixIndex<T>, PrefixIndex<List<T>>> accumulator() {
+  public BiConsumer<PrefixIndex<T>, PrefixIndex<Slice<Filter, T>>> accumulator() {
     return (l, r) -> {
       Object[] chunkIn;
       T[] chunkOut = (T[]) new Object[Long.SIZE];
@@ -40,7 +40,7 @@ class IndexAggregator<T> implements Collector<PrefixIndex<List<T>>, PrefixIndex<
           long temp = keyMask;
           while (temp != 0) {
             int j = numberOfTrailingZeros(temp);
-            T reduced = circuit.apply((List<T>) chunkIn[j]);
+            T reduced = circuit.apply((Slice<Filter, T>) chunkIn[j]);
             if (null != reduced) {
               chunkOut[j] = reduced;
             } else {

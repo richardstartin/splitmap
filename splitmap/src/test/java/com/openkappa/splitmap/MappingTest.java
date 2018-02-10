@@ -90,17 +90,17 @@ public class MappingTest {
     IntStream.range(0, 100000)
             .mapToObj(i -> randomDomainObject())
             .forEach(mapper::consume);
-    QueryContext<MyDomainObject, MyFilters, MyMetrics> df = mapper.snapshot();
-    double revenue = Circuits.evaluateIfKeysIntersect(slice -> slice.get(0).and(slice.get(1)),
-            df.indicesFor(FOO_FILTER, EXPENSIVE))
+    QueryContext<MyFilters, MyMetrics> df = mapper.snapshot();
+    double revenue = Circuits.evaluateIfKeysIntersect(df, slice -> slice.get(FOO_FILTER).and(slice.get(EXPENSIVE)),
+            FOO_FILTER, EXPENSIVE)
             .stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<MyMetrics>reducer(df.getMetric(PRICE), df.getMetric(QUANTITY))))
             .sum();
 
-    long count = Circuits.evaluate(slice -> slice.get(0).xor(slice.get(1)), df.indicesFor(BAR_FILTER, EXPENSIVE)).getCardinality();
+    long count = Circuits.evaluate(df, slice -> slice.get(BAR_FILTER).xor(slice.get(EXPENSIVE)), BAR_FILTER, EXPENSIVE).getCardinality();
 
-    double avgPrice = Circuits.evaluate(slice -> slice.get(0).andNot(slice.get(1)), df.indicesFor(BAR_FILTER, EXPENSIVE))
+    double avgPrice = Circuits.evaluate(df, slice -> slice.get(BAR_FILTER).andNot(slice.get(EXPENSIVE)), BAR_FILTER, EXPENSIVE)
             .stream()
             .map(partition -> partition.reduce(Average.<MyMetrics>reducer(df.getMetric(PRICE))))
             .collect(Average.collector());
@@ -113,6 +113,6 @@ public class MappingTest {
             ThreadLocalRandom.current().nextDouble(1E6));
   }
 
-
   private static final String[] names = new String[]{"foo", "bar", "blort"};
+
 }

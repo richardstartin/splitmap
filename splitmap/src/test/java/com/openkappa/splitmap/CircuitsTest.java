@@ -2,6 +2,11 @@ package com.openkappa.splitmap;
 
 import org.testng.annotations.Test;
 
+import java.util.EnumMap;
+import java.util.Map;
+
+import static java.util.Map.entry;
+import static java.util.Map.ofEntries;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
@@ -23,9 +28,9 @@ public class CircuitsTest {
     w2.add(1 << 16 | 2);
     w2.add(1 << 17 | 2);
 
-    SplitMap result = Circuits.evaluateIfKeysIntersect(
+    SplitMap result = Circuits.evaluateIfKeysIntersect(contextOf(w1, w2),
             slice -> null == slice ? null : slice.get(0).and(slice.get(1)),
-            w1.toSplitMap(), w2.toSplitMap());
+            0, 1);
 
     assertTrue(result.contains(0));
     assertTrue(result.contains(1 << 16));
@@ -47,8 +52,7 @@ public class CircuitsTest {
     w2.add(1 << 16 | 2);
     w2.add(1 << 17 | 2);
 
-    SplitMap result = Circuits.evaluate(slice -> null == slice ? null : slice.get(0).xor(slice.get(1)),
-            w1.toSplitMap(), w2.toSplitMap());
+    SplitMap result = Circuits.evaluate(contextOf(w1, w2), slice -> null == slice ? null : slice.get(0).xor(slice.get(1)), 0, 1);
 
     assertTrue(result.contains(1));
     assertTrue(result.contains(2));
@@ -58,42 +62,8 @@ public class CircuitsTest {
     assertTrue(result.contains(1 << 17 | 2));
   }
 
-
-  @Test
-  public void testStringConcatenation() {
-    PrefixIndex<String> index1 = new PrefixIndex<>();
-    index1.insert((short) 1, "foo");
-    index1.insert((short) (3), "bar");
-    PrefixIndex<String> index2 = new PrefixIndex<>();
-    index2.insert((short) 1, "bar");
-    index2.insert((short) (2), "foo");
-
-    PrefixIndex<String> concatenated = Circuits.groupByKey("", index1, index2)
-            .streamUniformPartitions()
-            .collect(new IndexAggregator<>(strings -> String.join("|", strings)));
-
-    assertEquals(concatenated.get((short) 1), "foo|bar");
-    assertEquals(concatenated.get((short) 2), "|foo");
-    assertEquals(concatenated.get((short) 3), "bar|");
-  }
-
-
-  @Test
-  public void testBoxedIntegerArithmetic() {
-    PrefixIndex<Integer> index1 = new PrefixIndex<>();
-    index1.insert((short) 1, 10);
-    index1.insert((short) (3), 11);
-    PrefixIndex<Integer> index2 = new PrefixIndex<>();
-    index2.insert((short) 1, 9);
-    index2.insert((short) (2), 12);
-
-    PrefixIndex<Integer> summation = Circuits.groupByKey(0, index1, index2)
-            .streamUniformPartitions()
-            .collect(new IndexAggregator<>(numbers -> numbers.stream().mapToInt(i -> i).sum()));
-    assertEquals((int) summation.get((short) 1), 10 + 9);
-    assertEquals((int) summation.get((short) 2), 12);
-    assertEquals((int) summation.get((short) 3), 11);
-
+  private static QueryContext<Integer, ?> contextOf(SplitMapPageWriter one, SplitMapPageWriter two) {
+    return new QueryContext<>(ofEntries(entry(0, one.toSplitMap()), entry(1, two.toSplitMap())), null);
   }
 
 }

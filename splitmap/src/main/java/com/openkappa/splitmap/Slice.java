@@ -1,15 +1,16 @@
 package com.openkappa.splitmap;
 
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
-public class Slice<Attribute extends Enum<Attribute>, Value> implements Iterable<Value> {
+public class Slice<Attribute, Value> implements Iterable<Value> {
 
-  private final EnumMap<Attribute, Value> values;
+  private final Map<Attribute, Value> values;
   private final Value defaultValue;
 
-  public Slice(Class<Attribute> model, Value defaultValue) {
-    this.values = new EnumMap<>(model);
+  public Slice(Value defaultValue) {
+    this.values = new HashMap<>();
     this.defaultValue = defaultValue;
   }
 
