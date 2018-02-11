@@ -70,7 +70,7 @@ public class Mapper<Value, FilterModel,  MetricModel extends Enum<MetricModel> &
     }
   }
 
-  private static <Value, FilterModel>
+  private static <FilterModel>
   Map<FilterModel, SplitMap> snapshotFilters(Map<FilterModel, SplitMapPageWriter> state) {
     Map<FilterModel, SplitMap> filters = new HashMap<>();
     state.forEach((filter, writer) -> filters.put(filter, writer.toSplitMap()));
@@ -86,7 +86,7 @@ public class Mapper<Value, FilterModel,  MetricModel extends Enum<MetricModel> &
     return metrics;
   }
 
-  private static <Value, FilterModel>
+  private static <FilterModel>
   Map<FilterModel, SplitMapPageWriter> buildFilters(Set<FilterModel> filters, IntUnaryOperator hash) {
     Map<FilterModel, SplitMapPageWriter> filterWriters = new HashMap<>();
     for (FilterModel filter : filters) {
