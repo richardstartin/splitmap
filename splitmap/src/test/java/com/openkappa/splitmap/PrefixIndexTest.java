@@ -22,4 +22,22 @@ public class PrefixIndexTest {
     assertEquals("value 2", index.get((short) 65));
   }
 
+  @Test
+  public void reduceLongShouldProduceCorrectResult() {
+    PrefixIndex<String> index = new PrefixIndex<>();
+    index.insert((short)0, "three blind mice");
+    index.insert((short)129, "a little mouse with clogs on");
+    long wordCount = index.reduceLong(0L, s -> s.split(" ").length, (x, y) -> x + y);
+    assertEquals(wordCount, 9);
+  }
+
+  @Test
+  public void reduceIntShouldProduceCorrectResult() {
+    PrefixIndex<String> index = new PrefixIndex<>();
+    index.insert((short)0, "three blind mice");
+    index.insert((short)129, "a little mouse with clogs on");
+    int wordCount = index.reduceInt(0, s -> s.split(" ").length, (x, y) -> x + y);
+    assertEquals(wordCount, 9);
+  }
+
 }

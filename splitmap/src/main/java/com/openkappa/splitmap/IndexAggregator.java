@@ -1,7 +1,6 @@
 package com.openkappa.splitmap;
 
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;

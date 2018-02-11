@@ -9,15 +9,9 @@ import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
-
 import static org.testng.Assert.assertEquals;
 
 public class ReductionTest {
-
-  private enum InputModel {
-    X, Y
-  }
-
 
   @Test
   public void testProductMomentCorrelationCoefficientFactors() {
@@ -75,7 +69,6 @@ public class ReductionTest {
     }
   }
 
-
   @Test
   public void testProductMomentCorrelationCoefficient() {
     double[] values1 = IntStream.range(0, 1000)
@@ -106,7 +99,7 @@ public class ReductionTest {
     double sqq = statistics[3];
     double spq = statistics[4];
     double n = statistics[5];
-    double pmccExpected =  (n * spq - sq * sp) / (Math.sqrt((n * spp - sp * sp) * (n * sqq - sq * sq)));
+    double pmccExpected = (n * spq - sq * sp) / (Math.sqrt((n * spp - sp * sp) * (n * sqq - sq * sq)));
 
     DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
     DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
@@ -133,7 +126,6 @@ public class ReductionTest {
             .collect(SimpleLinearRegression.pmcc());
     assertEquals(pmcc, pmccExpected, 1E-5);
   }
-
 
   @Test
   public void average() {
@@ -167,7 +159,6 @@ public class ReductionTest {
 
     assertEquals(avg, avgExpected, 1E-5);
   }
-
 
   @Test
   public void sumProduct() {
@@ -208,6 +199,11 @@ public class ReductionTest {
             .sum();
 
     assertEquals(sp, spExpected, 1E-5);
+  }
+
+
+  private enum InputModel {
+    X, Y
   }
 
 }

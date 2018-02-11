@@ -41,40 +41,40 @@ public class Circuits {
 
   static <T, Filter>
   PrefixIndex<Slice<Filter, T>> groupByKey(QueryContext<Filter, ?> context,
-                                                T defaultValue, Filter... filters) {
+                                           T defaultValue, Filter... filters) {
     return groupByKey(context, (x, y) -> x | y, 0L, defaultValue, filters);
   }
 
   static <T, Filter>
   PrefixIndex<Slice<Filter, T>> groupByIntersectingKeys(QueryContext<Filter, ?> context,
-                                                             T defaultValue,
-                                                             Filter... filters) {
+                                                        T defaultValue,
+                                                        Filter... filters) {
     return groupByKey(context, (x, y) -> x & y, -1L, defaultValue, filters);
   }
 
   private static <T, Filter>
   PrefixIndex<Slice<Filter, T>> groupByKey(QueryContext<Filter, ?> context,
-                                                LongBinaryOperator op,
-                                                long identity,
-                                                T defaultValue,
-                                                Filter... filters) {
+                                           LongBinaryOperator op,
+                                           long identity,
+                                           T defaultValue,
+                                           Filter... filters) {
     PrefixIndex<Slice<Filter, T>> grouped = new PrefixIndex<>(TEMPORARY_KEYS.get());
     PrefixIndex<T>[] indices = Arrays.stream(filters)
             .map(filter -> context.getSplitMap(filter).getIndex()).toArray(PrefixIndex[]::new);
     IntStream.range(0, PARTITIONS)
             .parallel()
             .forEach(p -> {
-              for (int i = PARTITION_SIZE * p; i < PARTITION_SIZE * (p + 1); ++i) {
+              for (int wordIndex = PARTITION_SIZE * p; wordIndex < PARTITION_SIZE * (p + 1); ++wordIndex) {
                 long word = identity;
                 for (PrefixIndex<T> index : indices) {
-                  word = index.computeKeyWord(i, word, op);
+                  word = index.computeKeyWord(wordIndex, word, op);
                 }
-                grouped.transferChunk(i, word, null);
+                grouped.transferChunk(wordIndex, word, null);
                 if (word != 0) {
                   Slice<Filter, T>[] chunk = new Slice[Long.SIZE];
                   int k = 0;
                   for (PrefixIndex<T> index : indices) {
-                    T[] column = index.getChunkNoCopy(i);
+                    T[] column = index.getChunkNoCopy(wordIndex);
                     if (null == column) {
                       continue;
                     }
@@ -91,7 +91,7 @@ public class Circuits {
                     }
                     ++k;
                   }
-                  grouped.transferChunk(i, word, chunk);
+                  grouped.transferChunk(wordIndex, word, chunk);
                 }
               }
             });

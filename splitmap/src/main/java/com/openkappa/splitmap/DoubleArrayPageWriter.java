@@ -44,7 +44,7 @@ public class DoubleArrayPageWriter {
         Arrays.fill(pages[page], 0D);
         mask ^= lowestOneBit(mask);
       }
-      index.insert((short)hash.applyAsInt(currentKey >>> 16), storage);
+      index.insert((short) hash.applyAsInt(currentKey >>> 16), storage);
     }
   }
 
