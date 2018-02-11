@@ -1,55 +1,54 @@
 package com.openkappa.splitmap;
 
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.Map;
+import java.util.*;
 import java.util.function.IntUnaryOperator;
+import java.util.function.Predicate;
 
-public class Mapper<Value, FilterModel extends Enum<FilterModel> & Filter<Value>,  MetricModel extends Enum<MetricModel> & Metric<Value>> {
+public class Mapper<Value, FilterModel,  MetricModel extends Enum<MetricModel> & Metric<Value>> {
 
 
-  public static <Value, FilterModel extends Enum<FilterModel> & Filter<Value>,  MetricModel extends Enum<MetricModel> & Metric<Value>>
+  public static <Value, FilterModel,  MetricModel extends Enum<MetricModel> & Metric<Value>>
   Builder<Value, FilterModel, MetricModel> builder() {
     return new Builder<>();
   }
 
-  private final EnumMap<FilterModel, SplitMapPageWriter> filters;
+  private final Map<FilterModel, Predicate<Value>> filters;
+  private final Map<FilterModel, SplitMapPageWriter> filterWriters;
   private final EnumMap<MetricModel, DoubleArrayPageWriter> metrics;
-  private final Class<FilterModel> filterModel;
   private final Class<MetricModel> metricModel;
 
   private int index = 0;
 
-  Mapper(Class<FilterModel> filterModel, Class<MetricModel> metricModel, IntUnaryOperator hash) {
-    this.filters = buildFilters(filterModel, hash);
+  Mapper(Map<FilterModel, Predicate<Value>> filters, Class<MetricModel> metricModel, IntUnaryOperator hash) {
+    this.filters = filters;
+    this.filterWriters = buildFilters(filters.keySet(), hash);
     this.metrics = buildMetrics(metricModel, hash);
-    this.filterModel = filterModel;
     this.metricModel = metricModel;
   }
 
   public void consume(Value value) {
     filters.entrySet()
            .stream()
-           .filter(f -> f.getKey().predicate().test(value))
-           .map(Map.Entry::getValue)
+           .filter(f -> f.getValue().test(value))
+           .map(f -> filterWriters.get(f.getKey()))
            .forEach(w -> w.add(index));
     metrics.forEach((metric, writer) -> writer.add(index, metric.extractor().applyAsDouble(value)));
     ++index;
   }
 
   public QueryContext<FilterModel, MetricModel> snapshot() {
-    return new QueryContext<>(snapshotFilters(filterModel, filters), snapshotMetrics(metricModel, metrics));
+    return new QueryContext<>(snapshotFilters(filterWriters), snapshotMetrics(metricModel, metrics));
   }
 
 
-  public static class Builder<Value, FilterModel extends Enum<FilterModel> & Filter<Value>,  MetricModel extends Enum<MetricModel> & Metric<Value>> {
-    private Class<FilterModel> filterModel;
+  public static class Builder<Value, FilterModel,  MetricModel extends Enum<MetricModel> & Metric<Value>> {
+    private Map<FilterModel, Predicate<Value>> filters = new HashMap<>();
     private Class<MetricModel> metricModel;
     private IntUnaryOperator hash = InvertibleHashing::scatter;
 
 
-    public Builder<Value, FilterModel, MetricModel> withFilterModel(Class<FilterModel> filterModel) {
-      this.filterModel = filterModel;
+    public Builder<Value, FilterModel, MetricModel> withFilter(FilterModel field, Predicate<Value> predicate) {
+      filters.put(field, predicate);
       return this;
     }
 
@@ -58,26 +57,22 @@ public class Mapper<Value, FilterModel extends Enum<FilterModel> & Filter<Value>
       return this;
     }
 
-    public Builder<Value, FilterModel, MetricModel> setHash(IntUnaryOperator hash) {
+    public Builder<Value, FilterModel, MetricModel> withHash(IntUnaryOperator hash) {
       this.hash = hash;
       return this;
     }
 
     public Mapper<Value, FilterModel, MetricModel> build() {
-      if (null == filterModel) {
-        throw new IllegalStateException("Must provide filter model");
-      }
       if (null == metricModel) {
         throw new IllegalStateException("Must provide metric model");
       }
-      return new Mapper<>(filterModel, metricModel, hash);
+      return new Mapper<>(filters, metricModel, hash);
     }
   }
 
-  private static <Value, FilterModel extends Enum<FilterModel> & Filter<Value>>
-  EnumMap<FilterModel, SplitMap> snapshotFilters(Class<FilterModel> filterModel,
-                                                 EnumMap<FilterModel, SplitMapPageWriter> state) {
-    EnumMap<FilterModel, SplitMap> filters = new EnumMap<>(filterModel);
+  private static <Value, FilterModel>
+  Map<FilterModel, SplitMap> snapshotFilters(Map<FilterModel, SplitMapPageWriter> state) {
+    Map<FilterModel, SplitMap> filters = new HashMap<>();
     state.forEach((filter, writer) -> filters.put(filter, writer.toSplitMap()));
     return filters;
   }
@@ -91,13 +86,13 @@ public class Mapper<Value, FilterModel extends Enum<FilterModel> & Filter<Value>
     return metrics;
   }
 
-  private static <Value, FilterModel extends Enum<FilterModel> & Filter<Value>>
-  EnumMap<FilterModel, SplitMapPageWriter> buildFilters(Class<FilterModel> filterModel, IntUnaryOperator hash) {
-    EnumMap<FilterModel, SplitMapPageWriter> filters = new EnumMap<>(filterModel);
-    for (FilterModel filter : EnumSet.allOf(filterModel)) {
-      filters.put(filter, new SplitMapPageWriter(hash));
+  private static <Value, FilterModel>
+  Map<FilterModel, SplitMapPageWriter> buildFilters(Set<FilterModel> filters, IntUnaryOperator hash) {
+    Map<FilterModel, SplitMapPageWriter> filterWriters = new HashMap<>();
+    for (FilterModel filter : filters) {
+      filterWriters.put(filter, new SplitMapPageWriter(hash));
     }
-    return filters;
+    return filterWriters;
   }
 
   private static <Value, MetricModel extends Enum<MetricModel> & Metric<Value>>

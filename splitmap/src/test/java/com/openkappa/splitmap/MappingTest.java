@@ -6,11 +6,9 @@ import org.testng.annotations.Test;
 
 import java.time.LocalDate;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.IntStream;
 
-import static com.openkappa.splitmap.MappingTest.MyFilters.*;
 import static com.openkappa.splitmap.MappingTest.MyMetrics.PRICE;
 import static com.openkappa.splitmap.MappingTest.MyMetrics.QUANTITY;
 
@@ -47,25 +45,6 @@ public class MappingTest {
     }
   }
 
-  /* This definitely doesn't scale at all - come up with a better way */
-  enum MyFilters implements Filter<MyDomainObject> {
-
-    FOO_FILTER(mdo -> mdo.getName().equals("foo")),
-    BAR_FILTER(mdo -> mdo.getName().equals("bar")),
-    EXPENSIVE(mdo -> mdo.getPrice() > 10000);
-
-    @Override
-    public Predicate<MyDomainObject> predicate() {
-      return predicate;
-    }
-
-    private final Predicate<MyDomainObject> predicate;
-
-    MyFilters(Predicate<MyDomainObject> predicate) {
-      this.predicate = predicate;
-    }
-  }
-
 
   enum MyMetrics implements Metric<MyDomainObject> {
     PRICE(MyDomainObject::getPrice),
@@ -85,22 +64,25 @@ public class MappingTest {
 
   @Test
   public void mappingPOC() {
-    Mapper<MyDomainObject, MyFilters, MyMetrics> mapper = Mapper.<MyDomainObject, MyFilters, MyMetrics>builder()
-            .withFilterModel(MyFilters.class).withMetricModel(MyMetrics.class).build();
+    Mapper<MyDomainObject, String, MyMetrics> mapper = Mapper.<MyDomainObject, String, MyMetrics>builder()
+            .withFilter("foo", x -> x.getName().equals("foo"))
+            .withFilter("bar", x -> x.getName().equals("bar"))
+            .withFilter("expensive", x -> x.getPrice() > 10000)
+            .withMetricModel(MyMetrics.class).build();
     IntStream.range(0, 100000)
             .mapToObj(i -> randomDomainObject())
             .forEach(mapper::consume);
-    QueryContext<MyFilters, MyMetrics> df = mapper.snapshot();
-    double revenue = Circuits.evaluateIfKeysIntersect(df, slice -> slice.get(FOO_FILTER).and(slice.get(EXPENSIVE)),
-            FOO_FILTER, EXPENSIVE)
+    QueryContext<String, MyMetrics> df = mapper.snapshot();
+    double revenue = Circuits.evaluateIfKeysIntersect(df, slice -> slice.get("foo").and(slice.get("expensive")),
+            "foo", "expensive")
             .stream()
             .parallel()
             .mapToDouble(partition -> partition.reduceDouble(SumProduct.<MyMetrics>reducer(df.getMetric(PRICE), df.getMetric(QUANTITY))))
             .sum();
 
-    long count = Circuits.evaluate(df, slice -> slice.get(BAR_FILTER).xor(slice.get(EXPENSIVE)), BAR_FILTER, EXPENSIVE).getCardinality();
+    long count = Circuits.evaluate(df, slice -> slice.get("bar").xor(slice.get("expensive")), "bar", "expensive").getCardinality();
 
-    double avgPrice = Circuits.evaluate(df, slice -> slice.get(BAR_FILTER).andNot(slice.get(EXPENSIVE)), BAR_FILTER, EXPENSIVE)
+    double avgPrice = Circuits.evaluate(df, slice -> slice.get("bar").andNot(slice.get("expensive")), "bar", "expensive")
             .stream()
             .map(partition -> partition.reduce(Average.<MyMetrics>reducer(df.getMetric(PRICE))))
             .collect(Average.collector());
