@@ -2,15 +2,15 @@ package com.openkappa.splitmap;
 
 import org.testng.annotations.Test;
 
-import java.util.EnumMap;
-import java.util.Map;
-
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
-import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 public class CircuitsTest {
+
+  private static QueryContext<Integer, ?> contextOf(SplitMapPageWriter one, SplitMapPageWriter two) {
+    return new QueryContext<>(ofEntries(entry(0, one.toSplitMap()), entry(1, two.toSplitMap())), null);
+  }
 
   @Test
   public void testIntersect() {
@@ -60,10 +60,6 @@ public class CircuitsTest {
     assertTrue(result.contains(1 << 16 | 2));
     assertTrue(result.contains(1 << 17 | 1));
     assertTrue(result.contains(1 << 17 | 2));
-  }
-
-  private static QueryContext<Integer, ?> contextOf(SplitMapPageWriter one, SplitMapPageWriter two) {
-    return new QueryContext<>(ofEntries(entry(0, one.toSplitMap()), entry(1, two.toSplitMap())), null);
   }
 
 }

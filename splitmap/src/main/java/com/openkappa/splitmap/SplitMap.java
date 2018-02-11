@@ -34,8 +34,12 @@ public class SplitMap {
 
   public long getCardinality() {
     return index.streamUniformPartitions()
-            .mapToInt(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
+            .mapToLong(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
             .sum();
+  }
+
+  public boolean isEmpty() {
+    return index.isEmpty();
   }
 
   public Stream<PrefixIndex<Container>> stream() {

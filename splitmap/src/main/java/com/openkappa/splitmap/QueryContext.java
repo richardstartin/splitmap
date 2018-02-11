@@ -2,7 +2,7 @@ package com.openkappa.splitmap;
 
 import java.util.Map;
 
-public class QueryContext<FilterModel,  MetricModel extends Enum<MetricModel>> {
+public class QueryContext<FilterModel, MetricModel extends Enum<MetricModel>> {
 
   private final Map<FilterModel, SplitMap> filters;
   private final Map<MetricModel, PrefixIndex<ChunkedDoubleArray>> metrics;

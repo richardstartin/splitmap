@@ -15,51 +15,12 @@ import static com.openkappa.splitmap.MappingTest.MyMetrics.QUANTITY;
 public class MappingTest {
 
 
-  private static class MyDomainObject {
-    private final String name;
-    private final LocalDate date;
-    private final double qty;
-    private final double price;
+  private static final String[] names = new String[]{"foo", "bar", "blort"};
 
-    MyDomainObject(String name, LocalDate date, double qty, double price) {
-      this.name = name;
-      this.date = date;
-      this.qty = qty;
-      this.price = price;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public LocalDate getDate() {
-      return date;
-    }
-
-    public double getQty() {
-      return qty;
-    }
-
-    public double getPrice() {
-      return price;
-    }
-  }
-
-
-  enum MyMetrics implements Metric<MyDomainObject> {
-    PRICE(MyDomainObject::getPrice),
-    QUANTITY(MyDomainObject::getQty);
-    private final ToDoubleFunction<MyDomainObject> extractor;
-
-    MyMetrics(ToDoubleFunction<MyDomainObject> extractor) {
-      this.extractor = extractor;
-    }
-
-
-    @Override
-    public ToDoubleFunction<MyDomainObject> extractor() {
-      return extractor;
-    }
+  private static MyDomainObject randomDomainObject() {
+    return new MyDomainObject(names[ThreadLocalRandom.current().nextInt(names.length)],
+            LocalDate.now(), ThreadLocalRandom.current().nextDouble(1E9),
+            ThreadLocalRandom.current().nextDouble(1E6));
   }
 
   @Test
@@ -89,12 +50,50 @@ public class MappingTest {
   }
 
 
-  private static MyDomainObject randomDomainObject() {
-    return new MyDomainObject(names[ThreadLocalRandom.current().nextInt(names.length)],
-            LocalDate.now(), ThreadLocalRandom.current().nextDouble(1E9),
-            ThreadLocalRandom.current().nextDouble(1E6));
+  enum MyMetrics implements Metric<MyDomainObject> {
+    PRICE(MyDomainObject::getPrice),
+    QUANTITY(MyDomainObject::getQty);
+    private final ToDoubleFunction<MyDomainObject> extractor;
+
+    MyMetrics(ToDoubleFunction<MyDomainObject> extractor) {
+      this.extractor = extractor;
+    }
+
+
+    @Override
+    public ToDoubleFunction<MyDomainObject> extractor() {
+      return extractor;
+    }
   }
 
-  private static final String[] names = new String[]{"foo", "bar", "blort"};
+  private static class MyDomainObject {
+    private final String name;
+    private final LocalDate date;
+    private final double qty;
+    private final double price;
+
+    MyDomainObject(String name, LocalDate date, double qty, double price) {
+      this.name = name;
+      this.date = date;
+      this.qty = qty;
+      this.price = price;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public LocalDate getDate() {
+      return date;
+    }
+
+    public double getQty() {
+      return qty;
+    }
+
+    public double getPrice() {
+      return price;
+    }
+  }
 
 }

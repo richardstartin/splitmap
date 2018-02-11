@@ -1,5 +1,6 @@
 package com.openkappa.splitmap;
 
+import java.util.Arrays;
 import java.util.function.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -9,8 +10,11 @@ import static java.lang.Long.numberOfTrailingZeros;
 
 public class PrefixIndex<T> {
 
+
   static final int PARTITIONS;
   static final int PARTITION_SIZE;
+  private static final long[] PROTOTYPE = new long[1 << 10];
+
   static {
     PARTITIONS = Runtime.getRuntime().availableProcessors();
     PARTITION_SIZE = (1 << 10) / PARTITIONS;
@@ -37,7 +41,7 @@ public class PrefixIndex<T> {
   }
 
   PrefixIndex(int offset, int range) {
-    this(new long[1 << 10], new ChunkedArray<>(), offset, range);
+    this(Arrays.copyOf(PROTOTYPE, 1 << 10), new ChunkedArray<>(), offset, range);
   }
 
   public int getMinChunkIndex() {
@@ -46,6 +50,10 @@ public class PrefixIndex<T> {
 
   public int getMaxChunkIndex() {
     return offset + range;
+  }
+
+  public boolean isEmpty() {
+    return Arrays.mismatch(keys, PROTOTYPE) == -1;
   }
 
   public T get(short key) {
