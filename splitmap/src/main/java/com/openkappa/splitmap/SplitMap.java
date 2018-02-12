@@ -33,9 +33,7 @@ public class SplitMap {
   }
 
   public long getCardinality() {
-    return index.streamUniformPartitions()
-            .mapToLong(partition -> partition.reduceInt(0, Container::getCardinality, (x, y) -> x + y))
-            .sum();
+    return index.reduceLong(0L, Container::getCardinality, (x, y) -> x + y);
   }
 
   public boolean isEmpty() {
