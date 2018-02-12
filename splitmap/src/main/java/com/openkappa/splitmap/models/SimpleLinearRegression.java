@@ -3,6 +3,7 @@ package com.openkappa.splitmap.models;
 import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
 import org.roaringbitmap.Container;
+import org.roaringbitmap.PeekableShortIterator;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -33,7 +34,9 @@ public enum SimpleLinearRegression {
             (key, mask) -> {
               ChunkedDoubleArray x = ctx.readChunk(0, key);
               ChunkedDoubleArray y = ctx.readChunk(1, key);
-              mask.forEach((short) 0, i -> {
+              PeekableShortIterator it = mask.getShortIterator();
+              while (it.hasNext()) {
+                int i = it.nextAsInt();
                 double sx = x.get(i);
                 double sy = y.get(i);
                 double sxx = sx * sx;
@@ -45,7 +48,7 @@ public enum SimpleLinearRegression {
                 ctx.contributeDouble(SYY, syy, (l, r) -> l + r);
                 ctx.contributeDouble(SXY, sxy, (l, r) -> l + r);
                 ctx.contributeDouble(N, 1, (l, r) -> l + r);
-              });
+              }
             }
     );
   }

@@ -3,6 +3,7 @@ package com.openkappa.splitmap.models;
 import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
 import org.roaringbitmap.Container;
+import org.roaringbitmap.PeekableShortIterator;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -25,10 +26,12 @@ public enum Average {
     ReductionContext<Model, Average, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, input);
     return ReductionProcedure.mixin(ctx, (key, mask) -> {
       ChunkedDoubleArray x = ctx.readChunk(0, key);
-      mask.forEach((short) 0, i -> {
+      PeekableShortIterator it = mask.getShortIterator();
+      while (it.hasNext()) {
+        int i = it.nextAsInt();
         ctx.contributeDouble(SUM, x.get(i), (l, r) -> l + r);
         ctx.contributeDouble(COUNT, 1, (l, r) -> l + r);
-      });
+      }
     });
   }
 
