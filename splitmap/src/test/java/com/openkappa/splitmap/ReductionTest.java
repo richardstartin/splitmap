@@ -71,15 +71,15 @@ public class ReductionTest {
 
   @Test
   public void testProductMomentCorrelationCoefficient() {
-    double[] values1 = IntStream.range(0, 1000)
+    double[] values1 = IntStream.range(0, 10000)
             .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
             .toArray();
-    double[] values2 = IntStream.range(0, 1000)
+    double[] values2 = IntStream.range(0, 10000)
             .mapToDouble(i -> -ThreadLocalRandom.current().nextDouble())
             .toArray();
 
     double[] statistics = new double[6];
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10000; ++i) {
       double sp = values1[i];
       double sq = values2[i];
       double spp = sp * sp;
@@ -108,10 +108,10 @@ public class ReductionTest {
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
-      for (int i = 0; i < 50; ++i) {
+      for (int i = 0; i < 500; ++i) {
         filterWriter.add(key + i);
-        writer1.add(key + i, values1[i + multiple * 50]);
-        writer2.add(key + i, values2[i + multiple * 50]);
+        writer1.add(key + i, values1[i + multiple * 500]);
+        writer2.add(key + i, values2[i + multiple * 500]);
       }
       ++multiple;
       key += 1 << 16;
@@ -129,11 +129,11 @@ public class ReductionTest {
 
   @Test
   public void average() {
-    double[] values1 = IntStream.range(0, 1000)
+    double[] values1 = IntStream.range(0, 10000)
             .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
             .toArray();
 
-    double avgExpected = Arrays.stream(values1).sum() / 1000D;
+    double avgExpected = Arrays.stream(values1).sum() / 10000D;
 
 
     DoubleArrayPageWriter writer = new DoubleArrayPageWriter(InvertibleHashing::scatter);
@@ -141,9 +141,9 @@ public class ReductionTest {
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
-      for (int i = 0; i < 50; ++i) {
+      for (int i = 0; i < 500; ++i) {
         filterWriter.add(key + i);
-        writer.add(key + i, values1[i + multiple * 50]);
+        writer.add(key + i, values1[i + multiple * 500]);
       }
       ++multiple;
       key += 1 << 16;
@@ -162,15 +162,15 @@ public class ReductionTest {
 
   @Test
   public void sumProduct() {
-    double[] values1 = IntStream.range(0, 1000)
+    double[] values1 = IntStream.range(0, 10000)
             .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
             .toArray();
 
-    double[] values2 = IntStream.range(0, 1000)
+    double[] values2 = IntStream.range(0, 10000)
             .mapToDouble(i -> ThreadLocalRandom.current().nextDouble())
             .toArray();
     double spExpected = 0D;
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10000; ++i) {
       spExpected += values1[i] * values2[i];
     }
 
@@ -181,10 +181,10 @@ public class ReductionTest {
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
-      for (int i = 0; i < 50; ++i) {
+      for (int i = 0; i < 500; ++i) {
         filterWriter.add(key + i);
-        writer1.add(key + i, values1[i + multiple * 50]);
-        writer2.add(key + i, values2[i + multiple * 50]);
+        writer1.add(key + i, values1[i + multiple * 500]);
+        writer2.add(key + i, values2[i + multiple * 500]);
       }
       ++multiple;
       key += 1 << 16;

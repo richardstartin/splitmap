@@ -23,6 +23,15 @@ public class ChunkedDoubleArray {
     pages[index] = Arrays.copyOf(page, 1 << 10);
   }
 
+
+  /**
+   * Gets the mask for the pages
+   * @return the mask
+   */
+  public long getPageMask() {
+    return mask;
+  }
+
   /**
    * Transfer a page without copying it. The caller should not reuse the reference afterwards.
    *

@@ -12,6 +12,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import static com.openkappa.splitmap.ContainerUtils.contains256BitRange;
+import static java.lang.Long.lowestOneBit;
+import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 
 public enum SimpleLinearRegression {
@@ -34,20 +37,53 @@ public enum SimpleLinearRegression {
             (key, mask) -> {
               ChunkedDoubleArray x = ctx.readChunk(0, key);
               ChunkedDoubleArray y = ctx.readChunk(1, key);
+              long pageMask = x.getPageMask() & y.getPageMask();
               PeekableShortIterator it = mask.getShortIterator();
-              while (it.hasNext()) {
-                int i = it.nextAsInt();
-                double sx = x.get(i);
-                double sy = y.get(i);
-                double sxx = sx * sx;
-                double syy = sy * sy;
-                double sxy = sx * sy;
-                ctx.contributeDouble(SX, sx, (l, r) -> l + r);
-                ctx.contributeDouble(SY, sy, (l, r) -> l + r);
-                ctx.contributeDouble(SXX, sxx, (l, r) -> l + r);
-                ctx.contributeDouble(SYY, syy, (l, r) -> l + r);
-                ctx.contributeDouble(SXY, sxy, (l, r) -> l + r);
-                ctx.contributeDouble(N, 1, (l, r) -> l + r);
+              while (pageMask != 0L) {
+                int j = numberOfTrailingZeros(pageMask);
+                double[] xPage = x.getPageNoCopy(j);
+                double[] yPage = y.getPageNoCopy(j);
+                for (int i = 0; i < 4; ++i) {
+                  int rangeIndex = (j * 1024) + (i * 256);
+                  double sx = 0D;
+                  double sy = 0D;
+                  double sxx = 0D;
+                  double syy = 0D;
+                  double sxy = 0D;
+                  double n = 0;
+                  if (contains256BitRange(mask, rangeIndex)) {
+                    for (int k = 0; k < 256; ++k) {
+                      double kx = xPage[i * 256 + k];
+                      double ky = yPage[i * 256 + k];
+                      sx += kx;
+                      sy += ky;
+                      sxx += kx * kx;
+                      syy += ky * ky;
+                      sxy += kx * ky;
+                    }
+                    n = 256;
+                    it.advanceIfNeeded((short)(rangeIndex + 256));
+                  } else {
+                    int next;
+                    while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 256) {
+                      double kx = xPage[next - j * 1024];
+                      double ky = yPage[next - j * 1024];
+                      sx += kx;
+                      sy += ky;
+                      sxx += kx * kx;
+                      syy += ky * ky;
+                      sxy += kx * ky;
+                      n += 1;
+                    }
+                  }
+                  ctx.contributeDouble(SX, sx, (l, r) -> l + r);
+                  ctx.contributeDouble(SY, sy, (l, r) -> l + r);
+                  ctx.contributeDouble(SXX, sxx, (l, r) -> l + r);
+                  ctx.contributeDouble(SYY, syy, (l, r) -> l + r);
+                  ctx.contributeDouble(SXY, sxy, (l, r) -> l + r);
+                  ctx.contributeDouble(N, n, (l, r) -> l + r);
+                }
+                pageMask ^= lowestOneBit(pageMask);
               }
             }
     );
