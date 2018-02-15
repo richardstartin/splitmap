@@ -40,9 +40,17 @@ public enum Average {
 
   private static double sum(ArrayContainer mask, ChunkedDoubleArray x) {
     double result = 0D;
+    long pageMask = x.getPageMask();
     PeekableShortIterator it = mask.getShortIterator();
-    while (it.hasNext()) {
-      result += x.get(it.nextAsInt());
+    while (pageMask != 0L) {
+      int j = numberOfTrailingZeros(pageMask);
+      double[] page = x.getPageNoCopy(j);
+      int rangeIndex = j * 1024;
+      int next;
+      while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
+        result += page[next - j * 1024];
+      }
+      pageMask ^= lowestOneBit(pageMask);
     }
     return result;
   }

@@ -2,8 +2,7 @@ package com.openkappa.splitmap.models;
 
 import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
-import org.roaringbitmap.Container;
-import org.roaringbitmap.PeekableShortIterator;
+import org.roaringbitmap.*;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -37,56 +36,135 @@ public enum SimpleLinearRegression {
             (key, mask) -> {
               ChunkedDoubleArray x = ctx.readChunk(0, key);
               ChunkedDoubleArray y = ctx.readChunk(1, key);
-              long pageMask = x.getPageMask() & y.getPageMask();
-              PeekableShortIterator it = mask.getShortIterator();
-              while (pageMask != 0L) {
-                int j = numberOfTrailingZeros(pageMask);
-                double[] xPage = x.getPageNoCopy(j);
-                double[] yPage = y.getPageNoCopy(j);
-                for (int i = 0; i < 4; ++i) {
-                  int rangeIndex = (j * 1024) + (i * 256);
-                  double sx = 0D;
-                  double sy = 0D;
-                  double sxx = 0D;
-                  double syy = 0D;
-                  double sxy = 0D;
-                  double n = 0;
-                  if (contains256BitRange(mask, rangeIndex)) {
-                    for (int k = 0; k < 256; ++k) {
-                      double kx = xPage[i * 256 + k];
-                      double ky = yPage[i * 256 + k];
-                      sx += kx;
-                      sy += ky;
-                      sxx += kx * kx;
-                      syy += ky * ky;
-                      sxy += kx * ky;
-                    }
-                    n = 256;
-                    it.advanceIfNeeded((short)(rangeIndex + 256));
-                  } else {
-                    int next;
-                    while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 256) {
-                      double kx = xPage[next - j * 1024];
-                      double ky = yPage[next - j * 1024];
-                      sx += kx;
-                      sy += ky;
-                      sxx += kx * kx;
-                      syy += ky * ky;
-                      sxy += kx * ky;
-                      n += 1;
-                    }
-                  }
-                  ctx.contributeDouble(SX, sx, (l, r) -> l + r);
-                  ctx.contributeDouble(SY, sy, (l, r) -> l + r);
-                  ctx.contributeDouble(SXX, sxx, (l, r) -> l + r);
-                  ctx.contributeDouble(SYY, syy, (l, r) -> l + r);
-                  ctx.contributeDouble(SXY, sxy, (l, r) -> l + r);
-                  ctx.contributeDouble(N, n, (l, r) -> l + r);
-                }
-                pageMask ^= lowestOneBit(pageMask);
+              if (mask instanceof RunContainer) {
+                computeRLE((RunContainer) mask, x, y, ctx);
+              } else if (mask instanceof BitmapContainer) {
+                computePaged((BitmapContainer) mask, x, y, ctx);
+              } else {
+                compute((ArrayContainer) mask, x, y, ctx);
               }
             }
     );
+  }
+
+
+  private static void compute(ArrayContainer mask,
+                              ChunkedDoubleArray x,
+                              ChunkedDoubleArray y,
+                              ReductionContext<?, SimpleLinearRegression, double[]> ctx) {
+    PeekableShortIterator it = mask.getShortIterator();
+    long pageMask = x.getPageMask() & y.getPageMask();
+    double sx = 0D;
+    double sy = 0D;
+    double sxx = 0D;
+    double syy = 0D;
+    double sxy = 0D;
+    while (pageMask != 0L) {
+      int j = numberOfTrailingZeros(pageMask);
+      double[] xPage = x.getPageNoCopy(j);
+      double[] yPage = y.getPageNoCopy(j);
+      int rangeIndex = (j * 1024);
+      int next;
+      while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
+        double kx = xPage[next - j * 1024];
+        double ky = yPage[next - j * 1024];
+        sx += kx;
+        sy += ky;
+        sxx += kx * kx;
+        syy += ky * ky;
+        sxy += kx * ky;
+      }
+      pageMask ^= lowestOneBit(pageMask);
+    }
+    ctx.contributeDouble(SX, sx, Reduction::add);
+    ctx.contributeDouble(SY, sy, Reduction::add);
+    ctx.contributeDouble(SXX, sxx, Reduction::add);
+    ctx.contributeDouble(SYY, syy, Reduction::add);
+    ctx.contributeDouble(SXY, sxy, Reduction::add);
+    ctx.contributeDouble(N, mask.getCardinality(), Reduction::add);
+  }
+
+
+  private static void computePaged(BitmapContainer mask,
+                                   ChunkedDoubleArray x,
+                                   ChunkedDoubleArray y,
+                                   ReductionContext<?, SimpleLinearRegression, double[]> ctx) {
+    long pageMask = x.getPageMask() & y.getPageMask();
+    PeekableShortIterator it = mask.getShortIterator();
+    double sx = 0D;
+    double sy = 0D;
+    double sxx = 0D;
+    double syy = 0D;
+    double sxy = 0D;
+    while (pageMask != 0L) {
+      int j = numberOfTrailingZeros(pageMask);
+      double[] xPage = x.getPageNoCopy(j);
+      double[] yPage = y.getPageNoCopy(j);
+      for (int i = 0; i < 4; ++i) {
+        int rangeIndex = (j * 1024) + (i * 256);
+        if (contains256BitRange(mask, rangeIndex)) {
+          for (int k = 0; k < 256; ++k) {
+            double kx = xPage[i * 256 + k];
+            double ky = yPage[i * 256 + k];
+            sx += kx;
+            sy += ky;
+            sxx += kx * kx;
+            syy += ky * ky;
+            sxy += kx * ky;
+          }
+          it.advanceIfNeeded((short) (rangeIndex + 256));
+        } else {
+          int next;
+          while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 256) {
+            double kx = xPage[next - j * 1024];
+            double ky = yPage[next - j * 1024];
+            sx += kx;
+            sy += ky;
+            sxx += kx * kx;
+            syy += ky * ky;
+            sxy += kx * ky;
+          }
+        }
+      }
+      pageMask ^= lowestOneBit(pageMask);
+    }
+    ctx.contributeDouble(SX, sx, Reduction::add);
+    ctx.contributeDouble(SY, sy, Reduction::add);
+    ctx.contributeDouble(SXX, sxx, Reduction::add);
+    ctx.contributeDouble(SYY, syy, Reduction::add);
+    ctx.contributeDouble(SXY, sxy, Reduction::add);
+    ctx.contributeDouble(N, mask.getCardinality(), Reduction::add);
+  }
+
+
+  private static void computeRLE(RunContainer mask,
+                                 ChunkedDoubleArray x,
+                                 ChunkedDoubleArray y,
+                                 ReductionContext<?, SimpleLinearRegression, double[]> ctx) {
+    double sx = 0D;
+    double sy = 0D;
+    double sxx = 0D;
+    double syy = 0D;
+    double sxy = 0D;
+    for (int i = 0; i < mask.numberOfRuns(); ++i) {
+      int start = mask.getValue(i) & 0xFFFF;
+      int end = start + mask.getLength(i) & 0xFFFF;
+      for (int j = start; j < end; ++j) {
+        double kx = x.get(j);
+        double ky = y.get(j);
+        sx += kx;
+        sy += ky;
+        sxx += kx * kx;
+        syy += ky * ky;
+        sxy += kx * ky;
+      }
+    }
+    ctx.contributeDouble(SX, sx, Reduction::add);
+    ctx.contributeDouble(SY, sy, Reduction::add);
+    ctx.contributeDouble(SXX, sxx, Reduction::add);
+    ctx.contributeDouble(SYY, syy, Reduction::add);
+    ctx.contributeDouble(SXY, sxy, Reduction::add);
+    ctx.contributeDouble(N, mask.getCardinality(), Reduction::add);
   }
 
   public static <Model extends Enum<Model>>

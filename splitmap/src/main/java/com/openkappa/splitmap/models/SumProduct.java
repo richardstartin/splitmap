@@ -34,17 +34,17 @@ public enum SumProduct {
 
 
   private static double sumProduct(Container mask, ChunkedDoubleArray x, ChunkedDoubleArray y) {
+    double result = 0D;
     long pageMask = x.getPageMask() & y.getPageMask();
     PeekableShortIterator it = mask.getShortIterator();
-    double result = 0D;
-    while (pageMask != 0) {
+    while (pageMask != 0L) {
       int j = numberOfTrailingZeros(pageMask);
       double[] xPage = x.getPageNoCopy(j);
       double[] yPage = y.getPageNoCopy(j);
-      int offset = j * 1024;
+      int rangeIndex = (j * 1024);
       int next;
-      while (it.hasNext() && (next = it.nextAsInt()) < offset + 1024) {
-        result += xPage[next - offset] * yPage[next - offset];
+      while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
+        result += xPage[next - j * 1024] * yPage[next - j * 1024];
       }
       pageMask ^= lowestOneBit(pageMask);
     }
