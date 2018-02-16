@@ -2,7 +2,7 @@ package com.openkappa.splitmap.models;
 
 import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
-import org.roaringbitmap.*;
+import com.openkappa.splitmap.roaring.*;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -11,7 +11,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static com.openkappa.splitmap.ContainerUtils.contains256BitRange;
+import static com.openkappa.splitmap.MaskUtils.contains256BitRange;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
@@ -24,24 +24,24 @@ public enum Average {
   private static final AveragingCollector AVG = new AveragingCollector();
 
   public static <Model extends Enum<Model>>
-  ReductionProcedure<Model, Average, double[], Container> reducer(PrefixIndex<ChunkedDoubleArray> input) {
+  ReductionProcedure<Model, Average, double[], Mask> reducer(PrefixIndex<ChunkedDoubleArray> input) {
     ReductionContext<Model, Average, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, input);
     return ReductionProcedure.mixin(ctx, (key, mask) -> {
       ChunkedDoubleArray x = ctx.readChunk(0, key);
-      double sum = mask instanceof RunContainer
-              ? rleSum((RunContainer) mask, x)
-              : mask instanceof ArrayContainer
-              ? sum((ArrayContainer) mask, x)
-              : pagedSum((BitmapContainer) mask, x);
+      double sum = mask instanceof RunMask
+              ? rleSum((RunMask) mask, x)
+              : mask instanceof SparseMask
+              ? sum((SparseMask) mask, x)
+              : pagedSum((DenseMask) mask, x);
       ctx.contributeDouble(SUM, sum, Reduction::add);
       ctx.contributeDouble(COUNT, mask.getCardinality(), Reduction::add);
     });
   }
 
-  private static double sum(ArrayContainer mask, ChunkedDoubleArray x) {
+  private static double sum(SparseMask mask, ChunkedDoubleArray x) {
     double result = 0D;
     long pageMask = x.getPageMask();
-    PeekableShortIterator it = mask.getShortIterator();
+    MaskIterator it = mask.iterator();
     while (pageMask != 0L) {
       int j = numberOfTrailingZeros(pageMask);
       double[] page = x.getPageNoCopy(j);
@@ -55,10 +55,10 @@ public enum Average {
     return result;
   }
 
-  private static double pagedSum(BitmapContainer mask, ChunkedDoubleArray x) {
+  private static double pagedSum(DenseMask mask, ChunkedDoubleArray x) {
     double result = 0D;
     long pageMask = x.getPageMask();
-    PeekableShortIterator it = mask.getShortIterator();
+    MaskIterator it = mask.iterator();
     while (pageMask != 0L) {
       int j = numberOfTrailingZeros(pageMask);
       double[] page = x.getPageNoCopy(j);
@@ -81,7 +81,7 @@ public enum Average {
     return result;
   }
 
-  private static double rleSum(RunContainer mask, ChunkedDoubleArray x) {
+  private static double rleSum(RunMask mask, ChunkedDoubleArray x) {
     double result = 0D;
     for (int i = 0; i < mask.numberOfRuns(); ++i) {
       int start = mask.getValue(i) & 0xFFFF;

@@ -101,7 +101,7 @@ public class ReductionBenchmarks {
 
   @Benchmark
   public double productMomentCorrelationCoefficient() {
-    return Circuits.evaluate(context, slice -> slice.get(0).lazyOR(slice.get(1)), 0, 1)
+    return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
             .stream()
             .parallel()
             .map(partition -> partition.reduce(SimpleLinearRegression.<PriceQty>reducer(price, qty)))

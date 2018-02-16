@@ -1,7 +1,7 @@
 package com.openkappa.splitmap;
 
-import org.roaringbitmap.ArrayContainer;
-import org.roaringbitmap.Container;
+import com.openkappa.splitmap.roaring.SparseMask;
+import com.openkappa.splitmap.roaring.Mask;
 
 import java.util.Arrays;
 import java.util.function.Function;
@@ -15,12 +15,12 @@ import static java.lang.Long.numberOfTrailingZeros;
 
 public class Circuits {
 
-  private static final Container EMPTY = new ArrayContainer();
+  private static final Mask EMPTY = new SparseMask();
   private static final ThreadLocal<long[]> TEMPORARY_KEYS = ThreadLocal.withInitial(() -> new long[1 << 10]);
 
   public static <Filter>
   SplitMap evaluateIfKeysIntersect(QueryContext<Filter, ?> context,
-                                   Function<Slice<Filter, Container>, Container> circuit,
+                                   Function<Slice<Filter, Mask>, Mask> circuit,
                                    Filter... filters) {
     return new SplitMap(groupByIntersectingKeys(context, EMPTY, filters)
             .streamUniformPartitions()
@@ -31,7 +31,7 @@ public class Circuits {
 
   public static <Filter>
   SplitMap evaluate(QueryContext<Filter, ?> context,
-                    Function<Slice<Filter, Container>, Container> circuit,
+                    Function<Slice<Filter, Mask>, Mask> circuit,
                     Filter... filters) {
     return new SplitMap(groupByKey(context, EMPTY, filters)
             .streamUniformPartitions()

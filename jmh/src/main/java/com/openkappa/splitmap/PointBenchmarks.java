@@ -1,7 +1,6 @@
 package com.openkappa.splitmap;
 
 import org.openjdk.jmh.annotations.*;
-import org.roaringbitmap.RoaringBitmap;
 
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
@@ -21,7 +20,6 @@ public class PointBenchmarks {
   @Param({"64", "256", "512"})
   int keys;
 
-  private RoaringBitmap bitmap;
   private SplitMap splitMap;
 
   private int goodValue;
@@ -33,20 +31,12 @@ public class PointBenchmarks {
     SplitMapPageWriter writer = new SplitMapPageWriter();
     IntStream.of(data).forEach(writer::add);
     splitMap = writer.toSplitMap();
-    bitmap = RoaringBitmap.bitmapOf(data);
     goodValue = data[ThreadLocalRandom.current().nextInt(data.length)];
     badValue = goodValue;
     while (Arrays.binarySearch(data, badValue) >= 0) {
       badValue = ThreadLocalRandom.current().nextInt();
     }
   }
-
-
-  @Benchmark
-  public long getCardinalityRoaring() {
-    return bitmap.getCardinality();
-  }
-
 
   @Benchmark
   public long getCardinalitySplitmap() {
@@ -55,19 +45,8 @@ public class PointBenchmarks {
 
 
   @Benchmark
-  public boolean containsRoaring() {
-    return bitmap.contains(goodValue);
-  }
-
-
-  @Benchmark
   public boolean containsSplitmap() {
     return splitMap.contains(goodValue);
-  }
-
-  @Benchmark
-  public boolean containsMissingRoaring() {
-    return bitmap.contains(badValue);
   }
 
 

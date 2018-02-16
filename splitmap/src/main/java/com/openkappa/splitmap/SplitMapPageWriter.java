@@ -1,7 +1,7 @@
 package com.openkappa.splitmap;
 
-import org.roaringbitmap.BitmapContainer;
-import org.roaringbitmap.Container;
+import com.openkappa.splitmap.roaring.DenseMask;
+import com.openkappa.splitmap.roaring.Mask;
 
 import java.util.Arrays;
 import java.util.function.IntUnaryOperator;
@@ -39,9 +39,9 @@ public class SplitMapPageWriter {
 
   public void flush() {
     if (dirty) {
-      Container container = new BitmapContainer(bitmap, -1).repairAfterLazy();
+      Mask mask = new DenseMask(bitmap, -1).repairAfterLazy();
       splitMap.insert((short) hash.applyAsInt(currentKey >>> 16),
-              container instanceof BitmapContainer ? container.clone() : container);
+              mask instanceof DenseMask ? mask.clone() : mask);
       clear();
     }
   }

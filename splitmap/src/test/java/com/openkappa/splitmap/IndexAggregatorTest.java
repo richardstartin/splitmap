@@ -1,7 +1,7 @@
 package com.openkappa.splitmap;
 
-import org.roaringbitmap.Container;
-import org.roaringbitmap.RunContainer;
+import com.openkappa.splitmap.roaring.Mask;
+import com.openkappa.splitmap.roaring.RunMask;
 import org.testng.annotations.Test;
 
 import java.util.HashMap;
@@ -18,10 +18,10 @@ public class IndexAggregatorTest {
     Map<Integer, SplitMap> filters = new HashMap<>();
     for (int i = 0; i < keyWords.length; ++i) {
       long[] keys = new long[1 << 10];
-      PrefixIndex<Container> index = new PrefixIndex<>(keys);
+      PrefixIndex<Mask> index = new PrefixIndex<>(keys);
       long mask = keyWords[i];
       while (mask != 0) {
-        index.insert((short) numberOfTrailingZeros(mask), RunContainer.full());
+        index.insert((short) numberOfTrailingZeros(mask), RunMask.full());
         mask ^= lowestOneBit(mask);
       }
       filters.put(i, new SplitMap(index));
