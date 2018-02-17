@@ -37,9 +37,9 @@ public class ReductionTest {
       statistics[5] += 1;
     }
 
-    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(Involutions::reverse);
+    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(Involutions::reverse);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(Involutions::reverse);
 
     int key = 0;
     int multiple = 0;
@@ -101,9 +101,9 @@ public class ReductionTest {
     double n = statistics[5];
     double pmccExpected = (n * spq - sq * sp) / (Math.sqrt((n * spp - sp * sp) * (n * sqq - sq * sq)));
 
-    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(Involutions::reverse);
+    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(Involutions::reverse);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(Involutions::reverse);
 
     int key = 0;
     int multiple = 0;
@@ -136,8 +136,8 @@ public class ReductionTest {
     double avgExpected = Arrays.stream(values1).sum() / 10000D;
 
 
-    DoubleArrayPageWriter writer = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter writer = new DoubleArrayPageWriter(Involutions::reverse);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(Involutions::reverse);
     int key = 0;
     int multiple = 0;
     for (int k = 0; k < 20; ++k) {
@@ -174,9 +174,9 @@ public class ReductionTest {
       spExpected += values1[i] * values2[i];
     }
 
-    SplitMapPageWriter filterWriter = new SplitMapPageWriter(InvertibleHashing::scatter);
-    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    SplitMapPageWriter filterWriter = new SplitMapPageWriter(Involutions::reverse);
+    DoubleArrayPageWriter writer1 = new DoubleArrayPageWriter(Involutions::reverse);
+    DoubleArrayPageWriter writer2 = new DoubleArrayPageWriter(Involutions::reverse);
 
     int key = 0;
     int multiple = 0;

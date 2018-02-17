@@ -15,7 +15,7 @@ public class SplitMapPageWriter {
   private boolean dirty;
 
   public SplitMapPageWriter() {
-    this(InvertibleHashing::scatter);
+    this(Involutions::reverse);
   }
 
   public SplitMapPageWriter(IntUnaryOperator hash) {

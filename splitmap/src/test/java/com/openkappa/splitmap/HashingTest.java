@@ -2,7 +2,6 @@ package com.openkappa.splitmap;
 
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -15,7 +14,7 @@ public class HashingTest {
   public void testScatterHashIsNotSurjective() {
     Set<Short> outputs = new HashSet<>();
     for (int i = 0; i < 1 << 16; ++i) {
-      assertTrue(outputs.add((short) InvertibleHashing.scatter(i)));
+      assertTrue(outputs.add((short) Involutions.reverse(i)));
     }
   }
 
@@ -23,8 +22,8 @@ public class HashingTest {
   @Test
   public void testScatterHashIsSelfInvertible() {
     for (int i = 0; i < 1 << 16; ++i) {
-      int hash = InvertibleHashing.scatter(i);
-      assertEquals(InvertibleHashing.scatter(hash), i);
+      int hash = Involutions.reverse(i);
+      assertEquals(Involutions.reverse(hash), i);
     }
   }
 

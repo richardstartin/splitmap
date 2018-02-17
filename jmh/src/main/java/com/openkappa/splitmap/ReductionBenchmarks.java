@@ -23,11 +23,11 @@ public class ReductionBenchmarks {
   }
 
 
-  @Param({"1000000"/*, "10000000"*/})
+  @Param({"1000000", "10000000"})
   private int tradeCount;
-  @Param({"10"/*, "100"*/})
+  @Param({"10", "100"})
   private int instrumentCount;
-  @Param({"5"/*, "10"*/})
+  @Param({"5", "10"})
   private int ccyCount;
 
   private PrefixIndex<ChunkedDoubleArray> qty;
@@ -152,13 +152,13 @@ public class ReductionBenchmarks {
 
   private void indexTrades() {
     SplitMapPageWriter[] instrumentWriters = IntStream.range(0, instrumentCount)
-            .mapToObj(i -> new SplitMapPageWriter(InvertibleHashing::scatter))
+            .mapToObj(i -> new SplitMapPageWriter(Involutions::reverse))
             .toArray(SplitMapPageWriter[]::new);
     SplitMapPageWriter[] ccyWriters = IntStream.range(0, ccyCount)
-            .mapToObj(i -> new SplitMapPageWriter(InvertibleHashing::scatter))
+            .mapToObj(i -> new SplitMapPageWriter(Involutions::reverse))
             .toArray(SplitMapPageWriter[]::new);
-    DoubleArrayPageWriter qtyWriter = new DoubleArrayPageWriter(InvertibleHashing::scatter);
-    DoubleArrayPageWriter priceWriter = new DoubleArrayPageWriter(InvertibleHashing::scatter);
+    DoubleArrayPageWriter qtyWriter = new DoubleArrayPageWriter(Involutions::reverse);
+    DoubleArrayPageWriter priceWriter = new DoubleArrayPageWriter(Involutions::reverse);
 
     int x = 0;
     for (Trade trade : trades) {

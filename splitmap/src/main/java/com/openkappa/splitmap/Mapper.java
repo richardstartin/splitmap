@@ -75,7 +75,7 @@ public class Mapper<Value, FilterModel, MetricModel extends Enum<MetricModel> & 
   public static class Builder<Value, FilterModel, MetricModel extends Enum<MetricModel> & Metric<Value>> {
     private Map<FilterModel, Predicate<Value>> filters = new HashMap<>();
     private Class<MetricModel> metricModel;
-    private IntUnaryOperator hash = InvertibleHashing::scatter;
+    private IntUnaryOperator hash = Involutions::reverse;
 
 
     public Builder<Value, FilterModel, MetricModel> withFilter(FilterModel field, Predicate<Value> predicate) {

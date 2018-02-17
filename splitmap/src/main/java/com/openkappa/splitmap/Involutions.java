@@ -1,8 +1,8 @@
 package com.openkappa.splitmap;
 
-public interface InvertibleHashing {
+public interface Involutions {
 
-  static int scatter(int value) {
+  static int reverse(int value) {
     return Integer.reverse(value) >>> 16;
   }
 
