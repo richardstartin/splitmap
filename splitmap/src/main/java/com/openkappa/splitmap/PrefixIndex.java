@@ -97,13 +97,13 @@ public class PrefixIndex<T> {
     }
   }
 
-  public <Model extends Enum<Model>, Output extends Enum<Output>, Result>
+  public <Model, Output, Result>
   ReductionContext<Model, Output, Result> reduce(ReductionProcedure<Model, Output, Result, T> procedure) {
     forEach(procedure);
     return procedure;
   }
 
-  public <Output extends Enum<Output>>
+  public <Output>
   double reduceDouble(ReductionProcedure<?, Output, Double, T> procedure) {
     forEach(procedure);
     return procedure.getReducedDouble();
@@ -146,7 +146,7 @@ public class PrefixIndex<T> {
     return result;
   }
 
-  public <Output extends Enum<Output>>
+  public <Output>
   long reduceLong(ReductionProcedure<?, Output, Long, T> procedure) {
     forEach(procedure);
     return procedure.getReducedLong();
@@ -170,7 +170,7 @@ public class PrefixIndex<T> {
   }
 
 
-  public <Output extends Enum<Output>>
+  public <Output>
   int reduceInt(ReductionProcedure<?, Output, Integer, T> procedure) {
     forEach(procedure);
     return procedure.getReducedInt();

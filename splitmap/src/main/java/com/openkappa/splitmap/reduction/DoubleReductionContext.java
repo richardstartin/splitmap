@@ -6,7 +6,7 @@ import com.openkappa.splitmap.ReductionContext;
 import java.util.function.BinaryOperator;
 import java.util.function.DoubleBinaryOperator;
 
-public class DoubleReductionContext<I extends Enum<I>, O extends Enum<O>> implements ReductionContext<I, O, Double> {
+public class DoubleReductionContext<I, O> implements ReductionContext<I, O, Double> {
 
   private final PrefixIndex[] inputs;
 

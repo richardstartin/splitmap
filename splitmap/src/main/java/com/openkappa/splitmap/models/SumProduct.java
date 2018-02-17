@@ -5,12 +5,10 @@ import com.openkappa.splitmap.PrefixIndex;
 import com.openkappa.splitmap.ReductionContext;
 import com.openkappa.splitmap.ReductionProcedure;
 import com.openkappa.splitmap.reduction.DoubleReductionContext;
-import com.openkappa.splitmap.roaring.DenseMask;
 import com.openkappa.splitmap.roaring.Mask;
 import com.openkappa.splitmap.roaring.MaskIterator;
 import com.openkappa.splitmap.roaring.RunMask;
 
-import static com.openkappa.splitmap.MaskUtils.contains256BitRange;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 
@@ -25,9 +23,7 @@ public enum SumProduct {
       ChunkedDoubleArray y = ctx.readChunk(1, key);
       double result = mask instanceof RunMask
               ? rleSumProduct((RunMask) mask, x, y)
-              : mask instanceof DenseMask
-                ? pagedSumProduct((DenseMask) mask, x, y)
-                : sumProduct(mask, x, y);
+              : sumProduct(mask, x, y);
       ctx.contributeDouble(SUM_PRODUCT, result, (l, r) -> l + r);
     });
   }
@@ -44,7 +40,7 @@ public enum SumProduct {
       int rangeIndex = (j * 1024);
       int next;
       while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
-        result += xPage[next - j * 1024] * yPage[next - j * 1024];
+        result = Math.fma(xPage[next - j * 1024], yPage[next - j * 1024], result);
       }
       pageMask ^= lowestOneBit(pageMask);
     }
@@ -57,35 +53,8 @@ public enum SumProduct {
       int start = mask.getValue(i) & 0xFFFF;
       int end = start + mask.getLength(i) & 0xFFFF;
       for (int j = start; j < end; ++j) {
-        result += x.get(j) * y.get(j);
+        result = Math.fma(x.get(j), y.get(j), result);
       }
-    }
-    return result;
-  }
-
-  private static double pagedSumProduct(DenseMask mask, ChunkedDoubleArray x, ChunkedDoubleArray y) {
-    double result = 0D;
-    long pageMask = x.getPageMask() & y.getPageMask();
-    MaskIterator it = mask.iterator();
-    while (pageMask != 0L) {
-      int j = numberOfTrailingZeros(pageMask);
-      double[] xPage = x.getPageNoCopy(j);
-      double[] yPage = y.getPageNoCopy(j);
-      for (int i = 0; i < 4; ++i) {
-        int rangeIndex = (j * 1024) + (i * 256);
-        if (contains256BitRange(mask, rangeIndex)) {
-          for (int k = 0; k < 256; ++k) {
-            result += xPage[i * 256 + k] * yPage[i * 256 + k];
-          }
-          it.advanceIfNeeded((short) (rangeIndex + 256));
-        } else {
-          int next;
-          while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 256) {
-            result += xPage[next - j * 1024] * yPage[next - j * 1024];
-          }
-        }
-      }
-      pageMask ^= lowestOneBit(pageMask);
     }
     return result;
   }

@@ -11,7 +11,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static com.openkappa.splitmap.MaskUtils.contains256BitRange;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
@@ -27,28 +26,26 @@ public enum SimpleLinearRegression {
   public static final int PARAMETER_COUNT = values().length;
   private static final ProductMomentCorrelationCoefficientCollector PMCC = new ProductMomentCorrelationCoefficientCollector();
 
-  public static <Model extends Enum<Model>>
+  public static <Model>
   ReductionProcedure<Model, SimpleLinearRegression, double[], Mask> reducer(PrefixIndex<ChunkedDoubleArray> x1,
                                                                             PrefixIndex<ChunkedDoubleArray> x2) {
     ReductionContext<Model, SimpleLinearRegression, double[]> ctx
-            = new DoubleArrayReductionContext<>(PARAMETER_COUNT, x1, x2);
+            = new DoubleArrayReductionContext<>(PARAMETER_COUNT, SimpleLinearRegression::ordinal, x1, x2);
     return ReductionProcedure.mixin(ctx,
             (key, mask) -> {
               ChunkedDoubleArray x = ctx.readChunk(0, key);
               ChunkedDoubleArray y = ctx.readChunk(1, key);
               if (mask instanceof RunMask) {
                 computeRLE((RunMask) mask, x, y, ctx);
-              } else if (mask instanceof DenseMask) {
-                computePaged((DenseMask) mask, x, y, ctx);
               } else {
-                compute((SparseMask) mask, x, y, ctx);
+                compute(mask, x, y, ctx);
               }
             }
     );
   }
 
 
-  private static void compute(SparseMask mask,
+  private static void compute(Mask mask,
                               ChunkedDoubleArray x,
                               ChunkedDoubleArray y,
                               ReductionContext<?, SimpleLinearRegression, double[]> ctx) {
@@ -66,65 +63,13 @@ public enum SimpleLinearRegression {
       int rangeIndex = (j * 1024);
       int next;
       while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
-        double kx = xPage[next - j * 1024];
-        double ky = yPage[next - j * 1024];
+        double kx = xPage[next - rangeIndex];
+        double ky = yPage[next - rangeIndex];
         sx += kx;
         sy += ky;
-        sxx += kx * kx;
-        syy += ky * ky;
-        sxy += kx * ky;
-      }
-      pageMask ^= lowestOneBit(pageMask);
-    }
-    ctx.contributeDouble(SX, sx, Reduction::add);
-    ctx.contributeDouble(SY, sy, Reduction::add);
-    ctx.contributeDouble(SXX, sxx, Reduction::add);
-    ctx.contributeDouble(SYY, syy, Reduction::add);
-    ctx.contributeDouble(SXY, sxy, Reduction::add);
-    ctx.contributeDouble(N, mask.getCardinality(), Reduction::add);
-  }
-
-
-  private static void computePaged(DenseMask mask,
-                                   ChunkedDoubleArray x,
-                                   ChunkedDoubleArray y,
-                                   ReductionContext<?, SimpleLinearRegression, double[]> ctx) {
-    long pageMask = x.getPageMask() & y.getPageMask();
-    MaskIterator it = mask.iterator();
-    double sx = 0D;
-    double sy = 0D;
-    double sxx = 0D;
-    double syy = 0D;
-    double sxy = 0D;
-    while (pageMask != 0L) {
-      int j = numberOfTrailingZeros(pageMask);
-      double[] xPage = x.getPageNoCopy(j);
-      double[] yPage = y.getPageNoCopy(j);
-      for (int i = 0; i < 4; ++i) {
-        int rangeIndex = (j * 1024) + (i * 256);
-        if (contains256BitRange(mask, rangeIndex)) {
-          for (int k = 0; k < 256; ++k) {
-            double kx = xPage[i * 256 + k];
-            double ky = yPage[i * 256 + k];
-            sx += kx;
-            sy += ky;
-            sxx += kx * kx;
-            syy += ky * ky;
-            sxy += kx * ky;
-          }
-          it.advanceIfNeeded((short) (rangeIndex + 256));
-        } else {
-          int next;
-          while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 256) {
-            double kx = xPage[next - j * 1024];
-            double ky = yPage[next - j * 1024];
-            sx += kx;
-            sy += ky;
-            sxx += kx * kx;
-            syy += ky * ky;
-            sxy += kx * ky;
-          }
-        }
+        sxx = Math.fma(kx, kx, sxx);
+        syy = Math.fma(ky, ky, syy);
+        sxy = Math.fma(kx, ky, sxy);
       }
       pageMask ^= lowestOneBit(pageMask);
     }
@@ -154,9 +99,9 @@ public enum SimpleLinearRegression {
         double ky = y.get(j);
         sx += kx;
         sy += ky;
-        sxx += kx * kx;
-        syy += ky * ky;
-        sxy += kx * ky;
+        sxx = Math.fma(kx, kx, sxx);
+        syy = Math.fma(ky, ky, syy);
+        sxy = Math.fma(kx, ky, sxy);
       }
     }
     ctx.contributeDouble(SX, sx, Reduction::add);
@@ -167,12 +112,12 @@ public enum SimpleLinearRegression {
     ctx.contributeDouble(N, mask.getCardinality(), Reduction::add);
   }
 
-  public static <Model extends Enum<Model>>
+  public static <Model>
   Collector<ReductionContext<Model, SimpleLinearRegression, double[]>, double[], Double> pmcc() {
     return (ProductMomentCorrelationCoefficientCollector<Model>) PMCC;
   }
 
-  private static class ProductMomentCorrelationCoefficientCollector<Model extends Enum<Model>>
+  private static class ProductMomentCorrelationCoefficientCollector<Model>
           implements Collector<ReductionContext<Model, SimpleLinearRegression, double[]>, double[], Double> {
 
     private static final Set<Characteristics> CHARACTERISTICS = Set.of(UNORDERED);

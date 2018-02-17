@@ -11,7 +11,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static com.openkappa.splitmap.MaskUtils.contains256BitRange;
+import static com.openkappa.splitmap.MaskUtils.contains1024BitRange;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
@@ -23,9 +23,9 @@ public enum Average {
   public static final int PARAMETER_COUNT = values().length;
   private static final AveragingCollector AVG = new AveragingCollector();
 
-  public static <Model extends Enum<Model>>
+  public static <Model>
   ReductionProcedure<Model, Average, double[], Mask> reducer(PrefixIndex<ChunkedDoubleArray> input) {
-    ReductionContext<Model, Average, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, input);
+    ReductionContext<Model, Average, double[]> ctx = new DoubleArrayReductionContext<>(PARAMETER_COUNT, Average::ordinal, input);
     return ReductionProcedure.mixin(ctx, (key, mask) -> {
       ChunkedDoubleArray x = ctx.readChunk(0, key);
       double sum = mask instanceof RunMask
@@ -48,7 +48,7 @@ public enum Average {
       int rangeIndex = j * 1024;
       int next;
       while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
-        result += page[next - j * 1024];
+        result += page[next - rangeIndex];
       }
       pageMask ^= lowestOneBit(pageMask);
     }
@@ -61,21 +61,19 @@ public enum Average {
     MaskIterator it = mask.iterator();
     while (pageMask != 0L) {
       int j = numberOfTrailingZeros(pageMask);
+      int pageOffset = j * 1024;
       double[] page = x.getPageNoCopy(j);
-      for (int i = 0; i < 4; ++i) {
-        int rangeIndex = j * 1024 + i * 256;
-        if (contains256BitRange(mask, rangeIndex)) {
-          for (int k = 0; k < 256; ++k) {
-            result += page[i * 256 + k];
-          }
-          it.advanceIfNeeded((short) (rangeIndex + 256));
-        } else {
-          int next;
-          while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 256) {
-            result += page[next - j * 1024];
-          }
+      if (contains1024BitRange(mask, pageOffset)) {
+        for (int k = 0; k < 1024; ++k) {
+          result += page[k];
         }
-      }
+        it.advanceIfNeeded((short) (pageOffset + 1024));
+      } else {
+        int next;
+        while (it.hasNext() && (next = it.nextAsInt()) < pageOffset + 1024) {
+          result += page[next - pageOffset];
+        }
+        }
       pageMask ^= lowestOneBit(pageMask);
     }
     return result;
@@ -93,12 +91,12 @@ public enum Average {
     return result;
   }
 
-  public static <Model extends Enum<Model>>
+  public static <Model>
   Collector<ReductionContext<Model, Average, double[]>, double[], Double> collector() {
     return (AveragingCollector<Model>) AVG;
   }
 
-  private static class AveragingCollector<Model extends Enum<Model>>
+  private static class AveragingCollector<Model>
           implements Collector<ReductionContext<Model, Average, double[]>, double[], Double> {
 
     private static Set<Characteristics> CHARACTERISTICS = Set.of(UNORDERED);

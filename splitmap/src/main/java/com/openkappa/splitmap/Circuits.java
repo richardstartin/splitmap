@@ -1,15 +1,12 @@
 package com.openkappa.splitmap;
 
-import com.openkappa.splitmap.roaring.SparseMask;
 import com.openkappa.splitmap.roaring.Mask;
+import com.openkappa.splitmap.roaring.SparseMask;
 
 import java.util.Arrays;
 import java.util.function.Function;
 import java.util.function.LongBinaryOperator;
-import java.util.stream.IntStream;
 
-import static com.openkappa.splitmap.PrefixIndex.PARTITIONS;
-import static com.openkappa.splitmap.PrefixIndex.PARTITION_SIZE;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 
@@ -61,40 +58,37 @@ public class Circuits {
     PrefixIndex<Slice<Filter, T>> grouped = new PrefixIndex<>(TEMPORARY_KEYS.get());
     PrefixIndex<T>[] indices = Arrays.stream(filters)
             .map(filter -> context.getSplitMap(filter).getIndex()).toArray(PrefixIndex[]::new);
-    IntStream.range(0, PARTITIONS)
-            .parallel()
-            .forEach(p -> {
-              for (int wordIndex = PARTITION_SIZE * p; wordIndex < PARTITION_SIZE * (p + 1); ++wordIndex) {
-                long word = identity;
-                for (PrefixIndex<T> index : indices) {
-                  word = index.computeKeyWord(wordIndex, word, op);
-                }
-                grouped.transferChunk(wordIndex, word, null);
-                if (word != 0) {
-                  Slice<Filter, T>[] chunk = new Slice[Long.SIZE];
-                  int k = 0;
-                  for (PrefixIndex<T> index : indices) {
-                    T[] column = index.getChunkNoCopy(wordIndex);
-                    if (null == column) {
-                      continue;
-                    }
-                    long mask = word;
-                    while (mask != 0) {
-                      int j = numberOfTrailingZeros(mask);
-                      if (null != column[j]) {
-                        if (null == chunk[j]) {
-                          chunk[j] = new Slice<>(defaultValue);
-                        }
-                        chunk[j].set(filters[k], column[j]);
-                      }
-                      mask ^= lowestOneBit(mask);
-                    }
-                    ++k;
-                  }
-                  grouped.transferChunk(wordIndex, word, chunk);
-                }
+
+    for (int wordIndex = 0; wordIndex < 1024; ++wordIndex) {
+      long word = identity;
+      for (PrefixIndex<T> index : indices) {
+        word = index.computeKeyWord(wordIndex, word, op);
+      }
+      grouped.transferChunk(wordIndex, word, null);
+      if (word != 0) {
+        Slice<Filter, T>[] chunk = new Slice[Long.SIZE];
+        int k = 0;
+        for (PrefixIndex<T> index : indices) {
+          T[] column = index.getChunkNoCopy(wordIndex);
+          if (null == column) {
+            continue;
+          }
+          long mask = word;
+          while (mask != 0) {
+            int j = numberOfTrailingZeros(mask);
+            if (null != column[j]) {
+              if (null == chunk[j]) {
+                chunk[j] = new Slice<>(defaultValue);
               }
-            });
+              chunk[j].set(filters[k], column[j]);
+            }
+            mask ^= lowestOneBit(mask);
+          }
+          ++k;
+        }
+        grouped.transferChunk(wordIndex, word, chunk);
+      }
+    }
     return grouped;
   }
 }

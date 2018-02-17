@@ -1,5 +1,6 @@
 package com.openkappa.splitmap;
 
+import com.openkappa.splitmap.models.Average;
 import com.openkappa.splitmap.models.SimpleLinearRegression;
 import com.openkappa.splitmap.models.SumProduct;
 import org.openjdk.jmh.annotations.*;
@@ -22,11 +23,11 @@ public class ReductionBenchmarks {
   }
 
 
-  @Param({"1000000", "10000000"})
+  @Param({"1000000"/*, "10000000"*/})
   private int tradeCount;
-  @Param({"10", "100"})
+  @Param({"10"/*, "100"*/})
   private int instrumentCount;
-  @Param({"5", "10"})
+  @Param({"5"/*, "10"*/})
   private int ccyCount;
 
   private PrefixIndex<ChunkedDoubleArray> qty;
@@ -91,11 +92,21 @@ public class ReductionBenchmarks {
 
   @Benchmark
   public double qtyXPriceForInstrumentIndex() {
-    return instrumentIndex[instId1]
+    return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
             .stream()
             .parallel()
-            .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, qty)))
+            .mapToDouble(partition -> partition.reduceDouble(SumProduct.reducer(price, qty)))
             .sum();
+  }
+
+
+  @Benchmark
+  public double averageQtyInstrumentAndCcyIndex() {
+    return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
+            .stream()
+            .parallel()
+            .map(partition -> partition.reduce(Average.reducer(qty)))
+            .collect(Average.collector());
   }
 
 
@@ -104,7 +115,7 @@ public class ReductionBenchmarks {
     return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
             .stream()
             .parallel()
-            .map(partition -> partition.reduce(SimpleLinearRegression.<PriceQty>reducer(price, qty)))
+            .map(partition -> partition.reduce(SimpleLinearRegression.reducer(price, qty)))
             .collect(SimpleLinearRegression.pmcc());
   }
 
@@ -123,7 +134,7 @@ public class ReductionBenchmarks {
     return Circuits.evaluate(context, slice -> slice.get(0).xor(slice.get(1)), 0, 1)
             .stream()
             .parallel()
-            .mapToDouble(partition -> partition.reduceDouble(SumProduct.<PriceQty>reducer(price, qty)))
+            .mapToDouble(partition -> partition.reduceDouble(SumProduct.reducer(price, qty)))
             .sum();
   }
 

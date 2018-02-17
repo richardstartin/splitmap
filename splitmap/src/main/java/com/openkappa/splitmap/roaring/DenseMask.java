@@ -33,10 +33,6 @@ public final class DenseMask extends Mask implements Cloneable {
 
   int cardinality;
 
-  // nruns value for which RunMask.serializedSizeInBytes ==
-  // DenseMask.getArraySizeInBytes()
-  //private final int MAXRUNS = (getArraySizeInBytes() - 2) / 4;
-
 
   /**
    * Create a bitmap mask with all bits set to false

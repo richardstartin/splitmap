@@ -4,10 +4,10 @@ import java.util.function.BinaryOperator;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.IntBinaryOperator;
 
-public interface ReductionProcedure<Input extends Enum<Input>, Output extends Enum<Output>, Result, Value>
+public interface ReductionProcedure<Input, Output, Result, Value>
         extends ReductionContext<Input, Output, Result>, KeyValueConsumer<Value> {
 
-  static <Input extends Enum<Input>, Output extends Enum<Output>, Result, Value>
+  static <Input, Output, Result, Value>
   ReductionProcedure<Input, Output, Result, Value> mixin(ReductionContext<Input, Output, Result> context,
                                                          KeyValueConsumer<Value> consumer) {
     return new ReductionProcedure<>() {

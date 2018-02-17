@@ -4,11 +4,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.IntBinaryOperator;
 
-public interface ReductionContext<I extends Enum<I>, O extends Enum<O>, V> {
-
-  default <U> U readChunk(I column, short key) {
-    return readChunk(column.ordinal(), key);
-  }
+public interface ReductionContext<I, O, V> {
 
   <U> U readChunk(int column, short key);
 
