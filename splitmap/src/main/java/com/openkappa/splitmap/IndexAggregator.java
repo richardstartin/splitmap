@@ -35,7 +35,8 @@ class IndexAggregator<Filter, T> implements Collector<PrefixIndex<Slice<Filter, 
       T[] chunkOut = (T[]) new Object[Long.SIZE];
       for (int i = r.getMinChunkIndex(); i < r.getMaxChunkIndex(); ++i) {
         long keyMask = r.readKeyWord(i);
-        if (keyMask != 0 && (chunkIn = r.getChunkNoCopy(i)) != null) {
+        if (keyMask != 0) {
+          chunkIn = r.getChunkNoCopy(i);
           long temp = keyMask;
           while (temp != 0) {
             int j = numberOfTrailingZeros(temp);

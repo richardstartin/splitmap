@@ -2,6 +2,8 @@ package com.openkappa.splitmap;
 
 import java.util.Arrays;
 import java.util.function.DoubleBinaryOperator;
+import java.util.stream.DoubleStream;
+import java.util.stream.LongStream;
 
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
@@ -107,6 +109,13 @@ public class ChunkedDoubleArray {
       mask ^= lowestOneBit(mask);
     }
     return result;
+  }
+
+  public DoubleStream stream() {
+    return LongStream.iterate(mask, m -> m != 0, m -> m ^ lowestOneBit(m))
+            .mapToInt(Long::numberOfTrailingZeros)
+            .mapToObj(i -> DoubleStream.of(pages[i]))
+            .flatMapToDouble(i -> i);
   }
 
 }

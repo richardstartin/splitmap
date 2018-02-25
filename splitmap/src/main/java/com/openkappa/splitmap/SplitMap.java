@@ -8,19 +8,19 @@ import java.util.stream.Stream;
 public class SplitMap {
 
   private final PrefixIndex<Mask> index;
-  private final IntUnaryOperator hash;
+  private final KeyInvolution involution;
 
-  public SplitMap(PrefixIndex<Mask> index, IntUnaryOperator hash) {
+  public SplitMap(PrefixIndex<Mask> index, KeyInvolution involution) {
     this.index = index;
-    this.hash = hash;
+    this.involution = involution;
   }
 
   public SplitMap(PrefixIndex<Mask> index) {
     this(index, Involutions::reverse);
   }
 
-  public SplitMap(IntUnaryOperator hash) {
-    this(new PrefixIndex<>(), hash);
+  public SplitMap(KeyInvolution involution) {
+    this(new PrefixIndex<>(), involution);
   }
 
   public void insert(short key, Mask region) {
@@ -28,7 +28,7 @@ public class SplitMap {
   }
 
   public boolean contains(int value) {
-    Mask mask = index.get((short) hash.applyAsInt(value >>> 16));
+    Mask mask = index.get(involution.invert((short)(value >>> 16)));
     return null != mask && mask.contains((short) value);
   }
 

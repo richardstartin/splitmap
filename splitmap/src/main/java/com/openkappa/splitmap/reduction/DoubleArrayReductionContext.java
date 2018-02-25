@@ -26,8 +26,12 @@ public class DoubleArrayReductionContext<I, O> implements ReductionContext<I, O,
 
   @Override
   public void contributeDouble(O column, double value, DoubleBinaryOperator op) {
-    int columnIndex = outputColumnMapper.applyAsInt(column);
-    output[columnIndex] = op.applyAsDouble(output[columnIndex], value);
+    contributeDouble(outputColumnMapper.applyAsInt(column), value, op);
+  }
+
+  @Override
+  public void contributeDouble(int column, double value, DoubleBinaryOperator op) {
+    output[column] = op.applyAsDouble(output[column], value);
   }
 
   @Override

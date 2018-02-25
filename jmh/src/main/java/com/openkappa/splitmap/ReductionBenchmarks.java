@@ -1,8 +1,6 @@
 package com.openkappa.splitmap;
 
-import com.openkappa.splitmap.models.Average;
-import com.openkappa.splitmap.models.SimpleLinearRegression;
-import com.openkappa.splitmap.models.SumProduct;
+import com.openkappa.splitmap.models.*;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.*;
@@ -23,11 +21,11 @@ public class ReductionBenchmarks {
   }
 
 
-  @Param({"1000000", "10000000"})
+  @Param({"1000000"/*, "10000000"*/})
   private int tradeCount;
-  @Param({"10", "100"})
+  @Param({"10", /*"100"*/})
   private int instrumentCount;
-  @Param({"5", "10"})
+  @Param({"5", /*"10"*/})
   private int ccyCount;
 
   private PrefixIndex<ChunkedDoubleArray> qty;
@@ -75,20 +73,23 @@ public class ReductionBenchmarks {
             .sum();
   }
 
-
   @Benchmark
   public double reduceQty() {
     return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
             .stream()
             .parallel()
-            .mapToDouble(partition ->
-                    partition.reduceDouble(0D, k -> qty.get((short)k),
-                            (c, v) -> v.reduce(0D, Reduction::add), Reduction::add)
-            )
-            .sum()
-            ;
+            .mapToDouble(partition -> partition.reduceDouble(Sum.reducer(qty)))
+            .sum();
   }
 
+  @Benchmark
+  public double reduceQtyVectorised() {
+    return Circuits.evaluate(context, slice -> slice.get(0).or(slice.get(1)), 0, 1)
+            .stream()
+            .parallel()
+            .map(partition -> partition.reduce(VerticalSum.reducer(qty)))
+            .collect(VerticalSum.horizontalSum());
+  }
 
   @Benchmark
   public double qtyXPriceForInstrumentIndex() {

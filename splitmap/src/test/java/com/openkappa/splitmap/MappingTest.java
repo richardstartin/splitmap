@@ -1,7 +1,9 @@
 package com.openkappa.splitmap;
 
 import com.openkappa.splitmap.models.Average;
+import com.openkappa.splitmap.models.Sum;
 import com.openkappa.splitmap.models.SumProduct;
+import com.openkappa.splitmap.models.VerticalSum;
 import org.testng.annotations.Test;
 
 import java.time.LocalDate;
@@ -47,6 +49,18 @@ public class MappingTest {
             .stream()
             .map(partition -> partition.reduce(Average.<MyMetrics>reducer(df.getMetric(PRICE))))
             .collect(Average.collector());
+
+    double sumQty = Circuits.evaluate(df, slice -> slice.get("foo").or(slice.get("expensive")), "foo", "expensive")
+            .stream()
+            .parallel()
+            .map(partition -> partition.reduce(VerticalSum.reducer(df.getMetric(QUANTITY))))
+            .collect(VerticalSum.horizontalSum());
+
+    double sumQty2 = Circuits.evaluate(df, slice -> slice.get("foo").or(slice.get("expensive")), "foo", "expensive")
+            .stream()
+            .parallel()
+            .mapToDouble(partition -> partition.reduceDouble(Sum.reducer(df.getMetric(QUANTITY))))
+            .sum();
   }
 
 

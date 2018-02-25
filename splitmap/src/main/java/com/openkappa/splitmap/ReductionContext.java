@@ -20,6 +20,18 @@ public interface ReductionContext<I, O, V> {
     throw new IllegalStateException("Not implemented");
   }
 
+  default void contributeInt(int column, int value, IntBinaryOperator op) {
+    throw new IllegalStateException("Not implemented");
+  }
+
+  default void contributeDouble(int column, double value, DoubleBinaryOperator op) {
+    throw new IllegalStateException("Not implemented");
+  }
+
+  default void contributeLong(int column, long value, DoubleBinaryOperator op) {
+    throw new IllegalStateException("Not implemented");
+  }
+
   void contribute(V value, BinaryOperator<V> op);
 
   V getReducedValue();

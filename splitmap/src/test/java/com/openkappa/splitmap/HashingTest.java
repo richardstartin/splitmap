@@ -14,7 +14,7 @@ public class HashingTest {
   public void testScatterHashIsNotSurjective() {
     Set<Short> outputs = new HashSet<>();
     for (int i = 0; i < 1 << 16; ++i) {
-      assertTrue(outputs.add((short) Involutions.reverse(i)));
+      assertTrue(outputs.add(Involutions.reverse((short)i)));
     }
   }
 
@@ -22,8 +22,8 @@ public class HashingTest {
   @Test
   public void testScatterHashIsSelfInvertible() {
     for (int i = 0; i < 1 << 16; ++i) {
-      int hash = Involutions.reverse(i);
-      assertEquals(Involutions.reverse(hash), i);
+      short inverse = Involutions.reverse((short)i);
+      assertEquals(Involutions.reverse(inverse) & 0xFFFF, i);
     }
   }
 

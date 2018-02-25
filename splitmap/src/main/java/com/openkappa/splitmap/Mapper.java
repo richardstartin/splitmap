@@ -13,10 +13,10 @@ public class Mapper<Value, FilterModel, MetricModel extends Enum<MetricModel> & 
   private final Class<MetricModel> metricModel;
   private int index = 0;
 
-  Mapper(Map<FilterModel, Predicate<Value>> filters, Class<MetricModel> metricModel, IntUnaryOperator hash) {
+  Mapper(Map<FilterModel, Predicate<Value>> filters, Class<MetricModel> metricModel, KeyInvolution involution) {
     this.filters = filters;
-    this.filterWriters = buildFilters(filters.keySet(), hash);
-    this.metrics = buildMetrics(metricModel, hash);
+    this.filterWriters = buildFilters(filters.keySet(), involution);
+    this.metrics = buildMetrics(metricModel, involution);
     this.metricModel = metricModel;
   }
 
@@ -41,19 +41,19 @@ public class Mapper<Value, FilterModel, MetricModel extends Enum<MetricModel> & 
   }
 
   private static <FilterModel>
-  Map<FilterModel, SplitMapPageWriter> buildFilters(Set<FilterModel> filters, IntUnaryOperator hash) {
+  Map<FilterModel, SplitMapPageWriter> buildFilters(Set<FilterModel> filters, KeyInvolution involution) {
     Map<FilterModel, SplitMapPageWriter> filterWriters = new HashMap<>();
     for (FilterModel filter : filters) {
-      filterWriters.put(filter, new SplitMapPageWriter(hash));
+      filterWriters.put(filter, new SplitMapPageWriter(involution));
     }
     return filterWriters;
   }
 
   private static <Value, MetricModel extends Enum<MetricModel> & Metric<Value>>
-  EnumMap<MetricModel, DoubleArrayPageWriter> buildMetrics(Class<MetricModel> metricModel, IntUnaryOperator hash) {
+  EnumMap<MetricModel, DoubleArrayPageWriter> buildMetrics(Class<MetricModel> metricModel, KeyInvolution involution) {
     EnumMap<MetricModel, DoubleArrayPageWriter> metrics = new EnumMap<>(metricModel);
     for (MetricModel metric : EnumSet.allOf(metricModel)) {
-      metrics.put(metric, new DoubleArrayPageWriter(hash));
+      metrics.put(metric, new DoubleArrayPageWriter(involution));
     }
     return metrics;
   }
@@ -75,7 +75,7 @@ public class Mapper<Value, FilterModel, MetricModel extends Enum<MetricModel> & 
   public static class Builder<Value, FilterModel, MetricModel extends Enum<MetricModel> & Metric<Value>> {
     private Map<FilterModel, Predicate<Value>> filters = new HashMap<>();
     private Class<MetricModel> metricModel;
-    private IntUnaryOperator hash = Involutions::reverse;
+    private KeyInvolution involution = Involutions::reverse;
 
 
     public Builder<Value, FilterModel, MetricModel> withFilter(FilterModel field, Predicate<Value> predicate) {
@@ -88,8 +88,8 @@ public class Mapper<Value, FilterModel, MetricModel extends Enum<MetricModel> & 
       return this;
     }
 
-    public Builder<Value, FilterModel, MetricModel> withHash(IntUnaryOperator hash) {
-      this.hash = hash;
+    public Builder<Value, FilterModel, MetricModel> withKeyInvolution(KeyInvolution hash) {
+      this.involution = involution;
       return this;
     }
 
@@ -97,7 +97,7 @@ public class Mapper<Value, FilterModel, MetricModel extends Enum<MetricModel> & 
       if (null == metricModel) {
         throw new IllegalStateException("Must provide metric model");
       }
-      return new Mapper<>(filters, metricModel, hash);
+      return new Mapper<>(filters, metricModel, involution);
     }
   }
 

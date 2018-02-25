@@ -13,7 +13,6 @@ import static java.lang.Long.numberOfTrailingZeros;
 public class Circuits {
 
   private static final Mask EMPTY = new SparseMask();
-  private static final ThreadLocal<long[]> TEMPORARY_KEYS = ThreadLocal.withInitial(() -> new long[1 << 10]);
 
   public static <Filter>
   SplitMap evaluateIfKeysIntersect(QueryContext<Filter, ?> context,
@@ -55,7 +54,7 @@ public class Circuits {
                                            long identity,
                                            T defaultValue,
                                            Filter... filters) {
-    PrefixIndex<Slice<Filter, T>> grouped = new PrefixIndex<>(TEMPORARY_KEYS.get());
+    PrefixIndex<Slice<Filter, T>> grouped = new PrefixIndex<>();
     PrefixIndex<T>[] indices = Arrays.stream(filters)
             .map(filter -> context.getSplitMap(filter).getIndex()).toArray(PrefixIndex[]::new);
 
@@ -64,7 +63,6 @@ public class Circuits {
       for (PrefixIndex<T> index : indices) {
         word = index.computeKeyWord(wordIndex, word, op);
       }
-      grouped.transferChunk(wordIndex, word, null);
       if (word != 0) {
         Slice<Filter, T>[] chunk = new Slice[Long.SIZE];
         int k = 0;
@@ -76,12 +74,10 @@ public class Circuits {
           long mask = word;
           while (mask != 0) {
             int j = numberOfTrailingZeros(mask);
-            if (null != column[j]) {
-              if (null == chunk[j]) {
-                chunk[j] = new Slice<>(defaultValue);
-              }
-              chunk[j].set(filters[k], column[j]);
+            if (null == chunk[j]) {
+              chunk[j] = new Slice<>(defaultValue);
             }
+            chunk[j].set(filters[k], column[j]);
             mask ^= lowestOneBit(mask);
           }
           ++k;

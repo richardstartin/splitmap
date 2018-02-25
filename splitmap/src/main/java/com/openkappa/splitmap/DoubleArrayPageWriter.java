@@ -10,13 +10,13 @@ public class DoubleArrayPageWriter {
 
   private final PrefixIndex<ChunkedDoubleArray> index;
   private final double[][] pages = new double[1 << 6][1 << 10];
-  private final IntUnaryOperator hash;
+  private final KeyInvolution involution;
 
   private long mask = 0;
   private int currentKey = -1;
 
-  public DoubleArrayPageWriter(IntUnaryOperator hash) {
-    this.hash = hash;
+  public DoubleArrayPageWriter(KeyInvolution involution) {
+    this.involution = involution;
     this.index = new PrefixIndex<>();
   }
 
@@ -44,7 +44,7 @@ public class DoubleArrayPageWriter {
         Arrays.fill(pages[page], 0D);
         mask ^= lowestOneBit(mask);
       }
-      index.insert((short) hash.applyAsInt(currentKey >>> 16), storage);
+      index.insert(involution.invert((short)(currentKey >>> 16)), storage);
     }
   }
 
