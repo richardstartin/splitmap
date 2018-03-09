@@ -2,7 +2,8 @@ package com.openkappa.splitmap.models;
 
 import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
-import com.openkappa.splitmap.roaring.*;
+import org.roaringbitmap.Container;
+import org.roaringbitmap.PeekableShortIterator;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -20,12 +21,12 @@ public enum VerticalSum {
   private static final HorizontalSumCollector SUM = new HorizontalSumCollector();
 
   public static <Model>
-  ReductionProcedure<Model, VerticalSum, double[], Mask> reducer(PrefixIndex<ChunkedDoubleArray> input) {
+  ReductionProcedure<Model, VerticalSum, double[], Container> reducer(PrefixIndex<ChunkedDoubleArray> input) {
     ReductionContext<Model, VerticalSum, double[]> ctx = new DoubleArrayReductionContext<>(1024, VerticalSum::ordinal, input);
     return ReductionProcedure.mixin(ctx, (key, mask) -> {
       ChunkedDoubleArray x = ctx.readChunk(0, key);
       long pageMask = x.getPageMask();
-      MaskIterator it = mask.iterator();
+      PeekableShortIterator it = mask.getShortIterator();
       while (pageMask != 0) {
         int pageIndex = numberOfTrailingZeros(pageMask);
         int offset = 1024 * pageIndex;

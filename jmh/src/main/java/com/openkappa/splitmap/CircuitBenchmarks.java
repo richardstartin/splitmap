@@ -1,8 +1,8 @@
 package com.openkappa.splitmap;
 
-import com.openkappa.splitmap.roaring.Mask;
-import com.openkappa.splitmap.roaring.SparseMask;
 import org.openjdk.jmh.annotations.*;
+import org.roaringbitmap.ArrayContainer;
+import org.roaringbitmap.Container;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class CircuitBenchmarks {
   int count;
 
   SplitMap[] splitMaps;
-  PrefixIndex<Mask>[] indices;
+  PrefixIndex<Container>[] indices;
 
   private QueryContext<Integer, ?> context;
   private Integer[] values;
@@ -45,20 +45,17 @@ public class CircuitBenchmarks {
 
     }
     context = new QueryContext<>(filters, null);
-
   }
 
 
   @Benchmark
   public SplitMap circuit1SplitMap() {
     return Circuits.evaluate(context, slice -> {
-      Mask difference = new SparseMask();
-      Mask union = new SparseMask();
-      for (Mask mask : slice) {
-        if (mask.getCardinality() != 0) {
-          difference = difference.xor(mask);
-          union = union.or(mask);
-        }
+      Container difference = new ArrayContainer();
+      Container union = new ArrayContainer();
+      for (Container mask : slice) {
+        difference = difference.xor(mask);
+        union = union.or(mask);
       }
       return difference.and(union);
     }, values);

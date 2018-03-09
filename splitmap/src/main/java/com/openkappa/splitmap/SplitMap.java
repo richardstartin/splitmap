@@ -1,21 +1,20 @@
 package com.openkappa.splitmap;
 
-import com.openkappa.splitmap.roaring.Mask;
+import org.roaringbitmap.Container;
 
-import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
 
 public class SplitMap {
 
-  private final PrefixIndex<Mask> index;
+  private final PrefixIndex<Container> index;
   private final KeyInvolution involution;
 
-  public SplitMap(PrefixIndex<Mask> index, KeyInvolution involution) {
+  public SplitMap(PrefixIndex<Container> index, KeyInvolution involution) {
     this.index = index;
     this.involution = involution;
   }
 
-  public SplitMap(PrefixIndex<Mask> index) {
+  public SplitMap(PrefixIndex<Container> index) {
     this(index, Involutions::reverse);
   }
 
@@ -23,28 +22,28 @@ public class SplitMap {
     this(new PrefixIndex<>(), involution);
   }
 
-  public void insert(short key, Mask region) {
+  public void insert(short key, Container region) {
     index.insert(key, region);
   }
 
   public boolean contains(int value) {
-    Mask mask = index.get(involution.invert((short)(value >>> 16)));
+    Container mask = index.get(involution.invert((short)(value >>> 16)));
     return null != mask && mask.contains((short) value);
   }
 
   public long getCardinality() {
-    return index.reduceLong(0L, Mask::getCardinality, (x, y) -> x + y);
+    return index.reduceLong(0L, Container::getCardinality, (x, y) -> x + y);
   }
 
   public boolean isEmpty() {
     return index.isEmpty();
   }
 
-  public Stream<PrefixIndex<Mask>> stream() {
+  public Stream<PrefixIndex<Container>> stream() {
     return index.streamUniformPartitions();
   }
 
-  PrefixIndex<Mask> getIndex() {
+  PrefixIndex<Container> getIndex() {
     return index;
   }
 

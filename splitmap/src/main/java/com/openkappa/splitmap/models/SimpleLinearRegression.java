@@ -2,7 +2,9 @@ package com.openkappa.splitmap.models;
 
 import com.openkappa.splitmap.*;
 import com.openkappa.splitmap.reduction.DoubleArrayReductionContext;
-import com.openkappa.splitmap.roaring.*;
+import org.roaringbitmap.Container;
+import org.roaringbitmap.PeekableShortIterator;
+import org.roaringbitmap.RunContainer;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -27,16 +29,16 @@ public enum SimpleLinearRegression {
   private static final ProductMomentCorrelationCoefficientCollector PMCC = new ProductMomentCorrelationCoefficientCollector();
 
   public static <Model>
-  ReductionProcedure<Model, SimpleLinearRegression, double[], Mask> reducer(PrefixIndex<ChunkedDoubleArray> x1,
-                                                                            PrefixIndex<ChunkedDoubleArray> x2) {
+  ReductionProcedure<Model, SimpleLinearRegression, double[], Container> reducer(PrefixIndex<ChunkedDoubleArray> x1,
+                                                                                 PrefixIndex<ChunkedDoubleArray> x2) {
     ReductionContext<Model, SimpleLinearRegression, double[]> ctx
             = new DoubleArrayReductionContext<>(PARAMETER_COUNT, SimpleLinearRegression::ordinal, x1, x2);
     return ReductionProcedure.mixin(ctx,
             (key, mask) -> {
               ChunkedDoubleArray x = ctx.readChunk(0, key);
               ChunkedDoubleArray y = ctx.readChunk(1, key);
-              if (mask instanceof RunMask) {
-                computeRLE((RunMask) mask, x, y, ctx);
+              if (mask instanceof RunContainer) {
+                computeRLE((RunContainer) mask, x, y, ctx);
               } else {
                 compute(mask, x, y, ctx);
               }
@@ -45,11 +47,11 @@ public enum SimpleLinearRegression {
   }
 
 
-  private static void compute(Mask mask,
+  private static void compute(Container mask,
                               ChunkedDoubleArray x,
                               ChunkedDoubleArray y,
                               ReductionContext<?, SimpleLinearRegression, double[]> ctx) {
-    MaskIterator it = mask.iterator();
+    PeekableShortIterator it = mask.getShortIterator();
     long pageMask = x.getPageMask() & y.getPageMask();
     double sx = 0D;
     double sy = 0D;
@@ -82,7 +84,7 @@ public enum SimpleLinearRegression {
   }
 
 
-  private static void computeRLE(RunMask mask,
+  private static void computeRLE(RunContainer mask,
                                  ChunkedDoubleArray x,
                                  ChunkedDoubleArray y,
                                  ReductionContext<?, SimpleLinearRegression, double[]> ctx) {

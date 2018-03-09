@@ -110,4 +110,15 @@ public class MappingTest {
     }
   }
 
+
+  public static void main(String[] args) {
+    System.out.println(Integer.toBinaryString(0x55555555));
+    System.out.println(Integer.toBinaryString(0x33333333));
+    System.out.println(Integer.toBinaryString(0x0F0F0F0F));
+    System.out.println(Integer.toBinaryString(0x00FF00FF));
+    System.out.println(Integer.toBinaryString(0x0000FFFF));
+
+    System.out.println(Integer.toBinaryString(0x3f));
+  }
+
 }
