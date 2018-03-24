@@ -11,7 +11,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static com.openkappa.splitmap.MaskUtils.contains1024BitRange;
 import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.UNORDERED;

@@ -1,28 +1,12 @@
 package com.openkappa.splitmap;
 
 import org.roaringbitmap.BitmapContainer;
-import org.roaringbitmap.Container;
 import org.roaringbitmap.PeekableShortIterator;
 import org.roaringbitmap.RunContainer;
 
-import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 
 public class MaskUtils {
-
-  private static final Container[] RANGES_1024 = new Container[1 << 6];
-  static {
-    for (int i = 0; i < 1 << 6; ++i) {
-      RANGES_1024[i] = new RunContainer(i * 1024, (i + 1) * 1024);
-    }
-  }
-
-
-
-  public static boolean contains1024BitRange(Container mask, int min) {
-    assert min % 1024 == 0;
-    return mask.contains(RANGES_1024[min >>> 10]);
-  }
 
   public static double pagedSum(BitmapContainer mask, ChunkedDoubleArray x) {
     double result = 0D;
@@ -32,7 +16,7 @@ public class MaskUtils {
       int j = numberOfTrailingZeros(pageMask);
       int pageOffset = j * 1024;
       double[] page = x.getPageNoCopy(j);
-      if (contains1024BitRange(mask, pageOffset)) {
+      if (mask.contains(pageOffset, pageOffset + 1024)) {
         double r1 = 0D;
         double r2 = 0D;
         double r3 = 0D;
@@ -51,7 +35,7 @@ public class MaskUtils {
           result += page[next - pageOffset];
         }
       }
-      pageMask ^= lowestOneBit(pageMask);
+      pageMask &= (pageMask - 1);
     }
     return result;
   }

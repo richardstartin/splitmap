@@ -7,7 +7,6 @@ import org.roaringbitmap.Container;
 import org.roaringbitmap.PeekableShortIterator;
 import org.roaringbitmap.RunContainer;
 
-import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 
 public enum Sum {
@@ -39,7 +38,7 @@ public enum Sum {
       while (it.hasNext() && (next = it.nextAsInt()) < rangeIndex + 1024) {
         result += xPage[next - j * 1024];
       }
-      pageMask ^= lowestOneBit(pageMask);
+      pageMask &= (pageMask - 1);
     }
     return result;
   }

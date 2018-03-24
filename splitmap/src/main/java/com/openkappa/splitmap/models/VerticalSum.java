@@ -12,7 +12,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static java.lang.Long.lowestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 
@@ -31,7 +30,7 @@ public enum VerticalSum {
         int pageIndex = numberOfTrailingZeros(pageMask);
         int offset = 1024 * pageIndex;
         double[] page = x.getPageNoCopy(pageIndex);
-        if (MaskUtils.contains1024BitRange(mask, offset)) {
+        if (mask.contains(offset, offset + 1024)) {
           ctx.contribute(page, Reduction::sumRightIntoLeft);
         } else { // slow path
           int next;
@@ -41,7 +40,7 @@ public enum VerticalSum {
           }
           ctx.contributeDouble(0, sum, Reduction::add);
         }
-        pageMask ^= lowestOneBit(pageMask);
+        pageMask &= (pageMask - 1);
       }
     });
   }

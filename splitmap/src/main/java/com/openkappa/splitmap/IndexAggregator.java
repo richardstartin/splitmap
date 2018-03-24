@@ -44,9 +44,9 @@ class IndexAggregator<Filter, T> implements Collector<PrefixIndex<Slice<Filter, 
             if (null != reduced) {
               chunkOut[j] = reduced;
             } else {
-              keyMask ^= lowestOneBit(temp);
+              keyMask &= (temp - 1);
             }
-            temp ^= lowestOneBit(temp);
+            temp &= (temp - 1);
           }
           l.writeChunk(i, keyMask, chunkOut);
         }

@@ -89,7 +89,7 @@ public class PrefixIndex<T> {
           while (mask != 0) {
             int j = numberOfTrailingZeros(mask);
             consumer.accept((short) (prefix + j), chunk[j]);
-            mask ^= lowestOneBit(mask);
+            mask &= (mask - 1);
           }
         }
       }
@@ -121,7 +121,7 @@ public class PrefixIndex<T> {
             int index = numberOfTrailingZeros(mask);
             int key = i * Long.SIZE + index;
             result = reduce.applyAsDouble(result, mapValue.applyAsDouble(chunk[index], mapKey.apply(key)));
-            mask ^= lowestOneBit(mask);
+            mask &= (mask - 1);
           }
         }
       }
@@ -138,7 +138,7 @@ public class PrefixIndex<T> {
         if (null != chunk) {
           while (mask != 0) {
             result = reduce.applyAsDouble(result, map.applyAsDouble(chunk[numberOfTrailingZeros(mask)]));
-            mask ^= lowestOneBit(mask);
+            mask &= (mask - 1);
           }
         }
       }
@@ -161,7 +161,7 @@ public class PrefixIndex<T> {
         if (null != chunk) {
           while (mask != 0) {
             result = reduce.applyAsLong(result, map.applyAsLong(chunk[numberOfTrailingZeros(mask)]));
-            mask ^= lowestOneBit(mask);
+            mask &= (mask - 1);
           }
         }
       }
@@ -185,7 +185,7 @@ public class PrefixIndex<T> {
         if (null != chunk) {
           while (mask != 0) {
             result = reduce.applyAsInt(result, map.applyAsInt(chunk[numberOfTrailingZeros(mask)]));
-            mask ^= lowestOneBit(mask);
+            mask &= (mask - 1);
           }
         }
       }

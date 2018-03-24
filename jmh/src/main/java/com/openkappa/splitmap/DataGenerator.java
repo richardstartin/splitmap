@@ -85,7 +85,7 @@ public class DataGenerator {
       long word = bitset[i];
       while (word != 0) {
         keys[k++] = prefix + Long.numberOfTrailingZeros(word);
-        word ^= Long.lowestOneBit(word);
+        word &= word - 1;
       }
       prefix += 64;
     }

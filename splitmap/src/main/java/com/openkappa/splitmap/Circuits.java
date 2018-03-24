@@ -78,7 +78,7 @@ public class Circuits {
               chunk[j] = new Slice<>(defaultValue);
             }
             chunk[j].set(filters[k], column[j]);
-            mask ^= lowestOneBit(mask);
+            mask &= (mask - 1);
           }
           ++k;
         }

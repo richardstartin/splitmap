@@ -106,7 +106,7 @@ public class ChunkedDoubleArray {
       for (int i = 0; i < page.length; ++i) {
         result = op.applyAsDouble(result, page[i]);
       }
-      mask ^= lowestOneBit(mask);
+      mask &= (mask - 1);
     }
     return result;
   }

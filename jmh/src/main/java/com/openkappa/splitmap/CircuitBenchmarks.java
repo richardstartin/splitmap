@@ -2,7 +2,9 @@ package com.openkappa.splitmap;
 
 import org.openjdk.jmh.annotations.*;
 import org.roaringbitmap.ArrayContainer;
+import org.roaringbitmap.BitmapContainer;
 import org.roaringbitmap.Container;
+import org.roaringbitmap.RoaringBitmap;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,7 +29,7 @@ public class CircuitBenchmarks {
 
   SplitMap[] splitMaps;
   PrefixIndex<Container>[] indices;
-
+  RoaringBitmap[] bitmaps;
   private QueryContext<Integer, ?> context;
   private Integer[] values;
 
@@ -49,15 +51,14 @@ public class CircuitBenchmarks {
 
 
   @Benchmark
-  public SplitMap circuit1SplitMap() {
+  public SplitMap orSplitMap() {
     return Circuits.evaluate(context, slice -> {
-      Container difference = new ArrayContainer();
-      Container union = new ArrayContainer();
+      Container union = new BitmapContainer(new long[1024], -1);
       for (Container mask : slice) {
-        difference = difference.xor(mask);
-        union = union.or(mask);
+        union = union.lazyIOR(mask);
       }
-      return difference.and(union);
+      return union.repairAfterLazy();
     }, values);
   }
+
 }
