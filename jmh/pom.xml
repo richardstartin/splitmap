@@ -38,6 +38,9 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
+                    <compilerArgs>
+                        <arg>--add-modules</arg><arg>jdk.incubator.vector</arg>
+                    </compilerArgs>
                     <verbose>true</verbose>
                     <fork>true</fork>
                     <source>${maven.compiler.source}</source>
@@ -65,7 +68,7 @@
                             <transformers>
                                 <!-- add Main-Class to manifest file -->
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.openkappa.splitmap.Launcher</mainClass>
+                                    <mainClass>uk.co.openkappa.splitmap.Launcher</mainClass>
                                 </transformer>
                             </transformers>
                             <finalName>benchmarks</finalName>
