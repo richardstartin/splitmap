@@ -1,5 +1,8 @@
 # splitmap
 
+[![Build Status](https://travis-ci.org/richardstartin/splitmap.svg?branch=master)](https://travis-ci.org/richardstartin/splitmap)
+[![Coverage Status](https://coveralls.io/repos/github/richardstartin/splitmap/badge.svg?branch=master)](https://coveralls.io/github/richardstartin/splitmap?branch=master)
+
 This library builds on top of [RoaringBitmap](https://github.com/RoaringBitmap/RoaringBitmap) to provide a parallel implementation of boolean circuits (multidimensional filters) and arbitrary aggregations over filters.
 
 For instance, to compute a sum product on a dataset filtered such that only one of two conditions holds:
